@@ -1,0 +1,6 @@
+*.log
+.DS_Store
+/ExampleData/*
+Icon.png
+*.txt
+*.png
