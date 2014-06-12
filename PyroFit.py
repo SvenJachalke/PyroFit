@@ -21,7 +21,7 @@ from pylab import *
 import glob
 import sys
 import os
-from lmfit import minimize, Parameters
+from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 
@@ -212,19 +212,21 @@ def fileprint_fit(log, fit, fit_error, name):
 	log.write("%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\n#\n"% (fit[0],fit_error[0],fit[1],fit_error[1],fit[2],fit_error[2],fit[3],fit_error[3],fit[4],fit_error[4]))
 	
 	return None
-def consoleprint_fit(fit, fit_error, name):
+#def consoleprint_fit(fit, fit_error, name):
+def consoleprint_fit(fit, name):
 	"""
 	Writes fit value in shell window
-	Input:	fit [list] - contains fit values
-			fit_error [lst] - contains error values
+	Input:	fit [dict] - Parameters-dict from lmfit
 			name [str] - what was fitted= (Temp, Curr, ...)
 	"""
 
 	print("---------------")
 	print("Fit: %s"%name)
 	print("---------------")
-	print("Amp.:\t%.4e (+-%.4e)\nFreq.:\t%.4e (+-%.4e)\nPhase:\t%.4e (+-%.4e)\nOffs.:\t%.4e (+-%.4e)\nSlope:\t%.4e (+-%.4e)"%(fit[0],fit_error[0],fit[1],fit_error[1],fit[2],fit_error[2],fit[3],fit_error[3],fit[4],fit_error[4]))
-	print("---------------")
+	#print("Amp.:\t%.4e (+-%.4e)\nFreq.:\t%.4e (+-%.4e)\nPhase:\t%.4e (+-%.4e)\nOffs.:\t%.4e (+-%.4e)\nSlope:\t%.4e (+-%.4e)"%(fit[0],fit_error[0],fit[1],fit_error[1],fit[2],fit_error[2],fit[3],fit_error[3],fit[4],fit_error[4]))
+	#print("---------------")
+
+	report_errors(fit)
 
 	return None
 	
@@ -727,10 +729,10 @@ else:
 				print 'B_T:\t\t%f nA/K' % (fabs(Inp/Tfit_down[1])*1e9)
 				input = raw_input("Show fits? [y/n]")
 				if input == "y":
-					consoleprint_fit(Tfit_down,Terror_down, "Temperature (Down)")
+					consoleprint_fit(Tparams_down, "Temperature (Down)")
 					if temp_filter_flag == False:
-						consoleprint_fit(Tfit_high, Terror_high, "Temperature (High)")
-					consoleprint_fit(Ifit, Ierror, "Current")
+						consoleprint_fit(Tfit_high, "Temperature (High)")
+					consoleprint_fit(Iparams,"Current")
 				else:
 					pass
 
