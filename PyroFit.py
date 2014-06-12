@@ -44,7 +44,8 @@ set_dpi = 300										#dpi for exporting figures
 transparency_flag = False							#exporting figures with transparent background?
 facecolor_legends = 'white'
 fontsize_box = '10'
-skip_points = 5										#skip points in plotting to speed up plotting and zooming (not interpol, fit)
+skip_points = 1										#initial skip points in plotting to speed up plotting and zooming (not interpol, fit)
+													#modified in set_skip_points() function with respect to length of time
 
 # Variables for fit parameters----------------------------------------------------------------------------------------------
 Tfit_down = [0,0,0,0,0]								#bottom temperature
@@ -228,6 +229,13 @@ def consoleprint_fit(fit, fit_error, name):
 	return None
 	
 # plot functions ---------------------------------------------------------------------------------------------------------------
+def set_skip_points():
+	if len(tnew) < 1000:
+		return 2
+	elif len(tnew) >= 1000 and len(tnew) <= 10000:
+		return 4
+	else:
+		return 6
 def plot_graph(tnew, Tnew_down, Inew, T_profile):
 	head = date+"_"+samplename+"_"+T_profile
 	bild = figure(head)
@@ -241,7 +249,7 @@ def plot_graph(tnew, Tnew_down, Inew, T_profile):
 	ax1.set_ylabel("temperature [K]",color='b',size=label_size)
 	ax1.grid(b=None, which='major', axis='both', color='grey', linewidth=1)
 	ax1.tick_params(axis='y', colors='blue')
-	l1 = ax1.plot(tnew[start_index::skip_points], Tnew_down[start_index::skip_points], 'bo', label="T meas. (Down)")
+	l1 = ax1.plot(tnew[start_index::set_skip_points()], Tnew_down[start_index::set_skip_points()], 'bo', label="T meas. (Down)")
 	ax1.autoscale(enable=True, axis='y', tight=None)
 	ax1.legend(title="temperatures", loc='upper left')
 
@@ -250,7 +258,7 @@ def plot_graph(tnew, Tnew_down, Inew, T_profile):
 	ax2.set_ylabel("current [A]",color='r',size=label_size)
 	ax2.tick_params(axis='y', colors='red')
 	ax2.autoscale(enable=True, axis='y', tight=None)
-	ax2.plot(tnew[start_index::skip_points], Inew[start_index::skip_points], 'ro', label="I meas.")
+	ax2.plot(tnew[start_index::set_skip_points()], Inew[start_index::set_skip_points()], 'ro', label="I meas.")
 	ax2.legend(title="currents", loc='lower right')
 	
 
@@ -442,7 +450,7 @@ print "--------------------------------"
 print "PyroFit - UnivseralScript"
 print "--------------------------------"
 
-# File Reading-----------------------------------------------------------------------------------------------------------------
+# File Reading----------------------------------------------------------------------------------------------------------------
 filelist = glob.glob('*.log')
 filecounter = 0
 current_filter_flag = False
@@ -526,14 +534,14 @@ for filename in filelist:
 		continue
 print "\n--------------------------------"
 
-#-------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------
 if filelist == []:
 	print "No measurement data files in Folder!"
 else:
-#-------------------------------------------------------------------------------------------------------------------------------------
-	#Routines for every measurement_type------------------------------------------------------------------------------------------
-	#-----------------------------------------------------------------------------------------------------------------------------
-	#-----------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------
+	#Routines for every measurement_type-------------------------------------------------------------------------------------
+	#------------------------------------------------------------------------------------------------------------------------
+	#------------------------------------------------------------------------------------------------------------------------
 	
 	#normal measurement routines without HV (SinWave, LinRamp, ...)
 	if HV_status == "Off":
