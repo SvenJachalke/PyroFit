@@ -197,22 +197,20 @@ def interpolate_data(temp_array, curr_array, steps, temp_filter_flag):
 		Tinterpol_top = interp1d(temp_array[::5,0],temp_array[::5,3])
 		Tnew_top = Tinterpol_top(tnew[:-5])
 		return tnew, Tnew_down, Tnew_top, Inew
-def fileprint_fit(log, fit, fit_error, name):
+def fileprint_fit(log, fit, name):
 	"""
 	Writes fit values into file
 	Input:	log [filehandle] - previously generated
-			fit [list] - contains fit values
-			fit_error [list] - contains error values
+			fit [dicts] - Params dict (lmfit)
 			name [str] - what was fitted? (Temp, Curr, ...)
 	Output: None
 	"""
 	
 	log.write("#%s fit data\n#----------\n" % name)
-	log.write("#Amp \t(Error)\tFreq [Hz]\t(error)\tPhase\t(error)\tOffset\t(error)\tSlope\t(error)\n")
-	log.write("%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\n#\n"% (fit[0],fit_error[0],fit[1],fit_error[1],fit[2],fit_error[2],fit[3],fit_error[3],fit[4],fit_error[4]))
+	log.write(fit_report(fit))
+	log.write("\n----------\n")
 	
 	return None
-#def consoleprint_fit(fit, fit_error, name):
 def consoleprint_fit(fit, name):
 	"""
 	Writes fit value in shell window
@@ -223,8 +221,6 @@ def consoleprint_fit(fit, name):
 	print("---------------")
 	print("Fit: %s"%name)
 	print("---------------")
-	#print("Amp.:\t%.4e (+-%.4e)\nFreq.:\t%.4e (+-%.4e)\nPhase:\t%.4e (+-%.4e)\nOffs.:\t%.4e (+-%.4e)\nSlope:\t%.4e (+-%.4e)"%(fit[0],fit_error[0],fit[1],fit_error[1],fit[2],fit_error[2],fit[3],fit_error[3],fit[4],fit_error[4]))
-	#print("---------------")
 
 	report_errors(fit)
 
@@ -739,10 +735,10 @@ else:
 				#file output -----------------------------------------------------------------------------------------------
 				log = open(date+"_"+samplename+"_"+T_profile+"_Results.txt", 'w+')
 				log.write("#Results\n#----------\n")
-				fileprint_fit(log,Tfit_down,Terror_down,"Temperature (Down)")
+				fileprint_fit(log,Tparams_down,"Temperature (Down)")
 				if temp_filter_flag == False:
-					fileprint_fit(log, Tfit_high, Terror_high, "Temperature (High)")
-				fileprint_fit(log, Ifit, Ierror, "Current")
+					fileprint_fit(log, Tparams_high, "Temperature (High)")
+				fileprint_fit(log, Iparams, "Current")
 				log.write("#area\tI-p\tI-TSC\tphasediff\tpyroCoeff\t(error)\tB_T\n")
 				log.write("#[m2]\t[A]\t[A]\t[deg]\t[yC/Km2]\t[yC/Km2]\t[nA/K]\n")
 				log.write("%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\n"%(area,Ip,Inp,degrees(phasediff),pyro_koeff*1e6, perror*1e6, fabs(Inp/Tfit_down[1])*1e9))
