@@ -19,9 +19,8 @@
 import glob
 import sys
 import os
-from scipy.interpolate import interp1d, interp2d
-from pylab import *
 from lmfit import minimize, Parameters
+from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
@@ -43,7 +42,8 @@ set_dpi = 300										#dpi for exporting figures
 transparency_flag = False							#exporting figures with transparent background?
 facecolor_legends = 'white'
 fontsize_box = '10'
-skip_points = 5										#skip points in plotting to speed up plotting and zooming (not interpol, fit)
+skip_points = 1										#initial skip points in plotting to speed up plotting and zooming (not interpol, fit)
+													#modified in set_skip_points() function with respect to length of time
 
 # Variables for fit parameters----------------------------------------------------------------------------------------------
 Tfit_down = [0,0,0,0,0]								#bottom temperature
@@ -195,38 +195,43 @@ def interpolate_data(temp_array, curr_array, steps, temp_filter_flag):
 		Tinterpol_top = interp1d(temp_array[::5,0],temp_array[::5,3])
 		Tnew_top = Tinterpol_top(tnew[:-5])
 		return tnew, Tnew_down, Tnew_top, Inew
-def fileprint_fit(log, fit, fit_error, name):
+def fileprint_fit(log, fit, name):
 	"""
 	Writes fit values into file
 	Input:	log [filehandle] - previously generated
-			fit [list] - contains fit values
-			fit_error [list] - contains error values
+			fit [dicts] - Params dict (lmfit)
 			name [str] - what was fitted? (Temp, Curr, ...)
 	Output: None
 	"""
 	
 	log.write("#%s fit data\n#----------\n" % name)
-	log.write("#Amp \t(Error)\tFreq [Hz]\t(error)\tPhase\t(error)\tOffset\t(error)\tSlope\t(error)\n")
-	log.write("%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\n#\n"% (fit[0],fit_error[0],fit[1],fit_error[1],fit[2],fit_error[2],fit[3],fit_error[3],fit[4],fit_error[4]))
+	log.write(fit_report(fit))
+	log.write("\n----------\n")
 	
 	return None
-def consoleprint_fit(fit, fit_error, name):
+def consoleprint_fit(fit, name):
 	"""
 	Writes fit value in shell window
-	Input:	fit [list] - contains fit values
-			fit_error [lst] - contains error values
+	Input:	fit [dict] - Parameters-dict from lmfit
 			name [str] - what was fitted= (Temp, Curr, ...)
 	"""
 
 	print("---------------")
 	print("Fit: %s"%name)
 	print("---------------")
-	print("Amp.:\t%.4e (+-%.4e)\nFreq.:\t%.4e (+-%.4e)\nPhase:\t%.4e (+-%.4e)\nOffs.:\t%.4e (+-%.4e)\nSlope:\t%.4e (+-%.4e)"%(fit[0],fit_error[0],fit[1],fit_error[1],fit[2],fit_error[2],fit[3],fit_error[3],fit[4],fit_error[4]))
-	print("---------------")
+
+	report_errors(fit)
 
 	return None
 	
 # plot functions ---------------------------------------------------------------------------------------------------------------
+def set_skip_points():
+	if len(tnew) < 1000:
+		return 2
+	elif len(tnew) >= 1000 and len(tnew) <= 10000:
+		return 4
+	else:
+		return 6
 def plot_graph(tnew, Tnew_down, Inew, T_profile):
 	head = date+"_"+samplename+"_"+T_profile
 	bild = figure(head)
@@ -240,7 +245,7 @@ def plot_graph(tnew, Tnew_down, Inew, T_profile):
 	ax1.set_ylabel("temperature [K]",color='b',size=label_size)
 	ax1.grid(b=None, which='major', axis='both', color='grey', linewidth=1)
 	ax1.tick_params(axis='y', colors='blue')
-	l1 = ax1.plot(tnew[start_index::skip_points], Tnew_down[start_index::skip_points], 'bo', label="T meas. (Down)")
+	l1 = ax1.plot(tnew[start_index::set_skip_points()], Tnew_down[start_index::set_skip_points()], 'bo', label="T meas. (Down)")
 	ax1.autoscale(enable=True, axis='y', tight=None)
 	ax1.legend(title="temperatures", loc='upper left')
 
@@ -249,7 +254,7 @@ def plot_graph(tnew, Tnew_down, Inew, T_profile):
 	ax2.set_ylabel("current [A]",color='r',size=label_size)
 	ax2.tick_params(axis='y', colors='red')
 	ax2.autoscale(enable=True, axis='y', tight=None)
-	ax2.plot(tnew[start_index::skip_points], Inew[start_index::skip_points], 'ro', label="I meas.")
+	ax2.plot(tnew[start_index::set_skip_points()], Inew[start_index::set_skip_points()], 'ro', label="I meas.")
 	ax2.legend(title="currents", loc='lower right')
 	
 
@@ -442,6 +447,7 @@ print "PyroFit - UnivseralScript"
 print "--------------------------------"
 
 # File Reading-----------------------------------------------------------------------------------------------------------------
+
 filelist = glob.glob('*.log')
 filecounter = 0
 current_filter_flag = False
@@ -525,14 +531,14 @@ for filename in filelist:
 		continue
 print "\n--------------------------------"
 
-#-------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------
 if filelist == []:
 	print "No measurement data files in Folder!"
 else:
-#-------------------------------------------------------------------------------------------------------------------------------------
-	#Routines for every measurement_type------------------------------------------------------------------------------------------
-	#-----------------------------------------------------------------------------------------------------------------------------
-	#-----------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------
+	#Routines for every measurement_type-------------------------------------------------------------------------------------
+	#------------------------------------------------------------------------------------------------------------------------
+	#------------------------------------------------------------------------------------------------------------------------
 	
 	#normal measurement routines without HV (SinWave, LinRamp, ...)
 	if HV_status == "Off":
@@ -718,20 +724,20 @@ else:
 				print 'B_T:\t\t%f nA/K' % (fabs(Inp/Tfit_down[1])*1e9)
 				input = raw_input("Show fits? [y/n]")
 				if input == "y":
-					consoleprint_fit(Tfit_down,Terror_down, "Temperature (Down)")
+					consoleprint_fit(Tparams_down, "Temperature (Down)")
 					if temp_filter_flag == False:
-						consoleprint_fit(Tfit_high, Terror_high, "Temperature (High)")
-					consoleprint_fit(Ifit, Ierror, "Current")
+						consoleprint_fit(Tfit_high, "Temperature (High)")
+					consoleprint_fit(Iparams,"Current")
 				else:
 					pass
 
 				#file output -----------------------------------------------------------------------------------------------
 				log = open(date+"_"+samplename+"_"+T_profile+"_Results.txt", 'w+')
 				log.write("#Results\n#----------\n")
-				fileprint_fit(log,Tfit_down,Terror_down,"Temperature (Down)")
+				fileprint_fit(log,Tparams_down,"Temperature (Down)")
 				if temp_filter_flag == False:
-					fileprint_fit(log, Tfit_high, Terror_high, "Temperature (High)")
-				fileprint_fit(log, Ifit, Ierror, "Current")
+					fileprint_fit(log, Tparams_high, "Temperature (High)")
+				fileprint_fit(log, Iparams, "Current")
 				log.write("#area\tI-p\tI-TSC\tphasediff\tpyroCoeff\t(error)\tB_T\n")
 				log.write("#[m2]\t[A]\t[A]\t[deg]\t[yC/Km2]\t[yC/Km2]\t[nA/K]\n")
 				log.write("%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\n"%(area,Ip,Inp,degrees(phasediff),pyro_koeff*1e6, perror*1e6, fabs(Inp/Tfit_down[1])*1e9))
