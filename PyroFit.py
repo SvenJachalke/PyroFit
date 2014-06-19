@@ -16,10 +16,11 @@
 #---------------------------------------------------------------------------------------------------------------------------
 
 # Import modules------------------------------------------------------------------------------------------------------------
+from pylab import *
+from scipy.interpolate import interp1d, interp2d
 import glob
 import sys
 import os
-from lmfit import minimize, Parameters
 from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
