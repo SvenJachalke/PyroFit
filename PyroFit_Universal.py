@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 #
 # Universal Script for PyroData Evaluation
-# (Use only for individual data records, e.g. all files are contained in one single folder!!!)
+# (Use only for individual data records -- all files are contained in one single folder!!!)
 #---------------------------------------------------------------------------------------------------------------------------
-# Author: Sven Jachalke
-# Mail:	sven.jachalke@phyik.tu-freiberg.de
+# Author:	Sven Jachalke
+# Mail:		sven.jachalke@phyik.tu-freiberg.de
 # Adress:	Institut fuer Experimentelle Physik
 #			Leipziger Strasse 23
 #			09596 Freiberg
@@ -16,14 +16,13 @@
 #---------------------------------------------------------------------------------------------------------------------------
 
 # Import modules------------------------------------------------------------------------------------------------------------
-from scipy.interpolate import interp1d, interp2d
-from pylab import *
 import glob
 import sys
 import os
+from scipy.interpolate import interp1d, interp2d
+from pylab import *
 from lmfit import minimize, Parameters
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-
 
 # User Settings-------------------------------------------------------------------------------------------------------------
 upper_I_lim = 1e-7                                  #limitation of current in plot and fit (for spikes, ...)
