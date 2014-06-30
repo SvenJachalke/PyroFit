@@ -207,7 +207,7 @@ def fileprint_fit(log, fit, name):
 	
 	log.write("#%s fit data\n#----------\n" % name)
 	log.write(fit_report(fit))
-	log.write("\n----------\n")
+	log.write("\n#----------\n")
 	
 	return None
 def consoleprint_fit(fit, name):
@@ -772,8 +772,6 @@ else:
 				
 			show()
 
-
-
 			input = raw_input("fit [y/n]?")
 			if input == "y":
 			
@@ -791,46 +789,44 @@ else:
 				print "--------------------------------"
 				print "...fitting"
 				print "----------"
+				
+				#prepare output log
+				log = open(date+"_"+samplename+"_"+T_profile+"_T-I-Fits.txt", 'w+')
 
 				#Temperature Fit -------------------------------------------------------------------------------------
 				Tparams_down = fit(tnew, Tnew_down,start_index,limit,1)
-				
 				#extract params dict to lists
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
-	
 				#correction of phase < 0 or phase > 360 deg
 				Tfit_down[2] = PhaseRangeCheck(Tfit_down[2])
-				
 				#Fit-Plot
 				ax1.plot(tnew[start_index:limit], sinfunc(Tparams_down, tnew[start_index:limit]), 'b-')
 				draw()
-				
 				#absolute T_high Error
 				total_Terror_down = abs(Tparams_down['amp'].stderr/Tparams_down['amp'].value)+abs(Tparams_down['phase'].stderr/Tparams_down['phase'].value)+abs(Tparams_down['freq'].stderr/Tparams_down['freq'].value)+abs(Tparams_down['offs'].stderr/Tparams_down['offs'].value)+abs(Tparams_down['slope'].stderr/Tparams_down['slope'].value)
+				#file output
+				fileprint_fit(log,Tparams_down,"Temperature (Down)")
+				
 
 				#for top temperature-------------------
 				if temp_filter_flag == False:
-					Tfit_high, Terror_high, Tparams_high = fit(tnew, Tnew_top, start_index, limit,1)
-					
+					Tparams_high = fit(tnew, Tnew_top, start_index, limit,1)
+					#extract params dict to lists
+					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
+					#correction of phase < 0 or phase > 360 deg
+					Tfit_high[2] = PhaseRangeCheck(Tfit_high[2])
 					#plot of second fit
 					ax1.plot(tnew[start_index:-5], sinfunc(Tparams_high, tnew[start_index:-5]), 'g-', label='T-Fit (Top)')
 					draw()
 
 					#absolute T_high Error
 					total_Terror_high = abs(Tparams_high['amp'].stderr/Tparams_high['amp'].value)+abs(Tparams_high['phase'].stderr/Tparams_high['phase'].value)+abs(Tparams_high['freq'].stderr/Tparams_high['freq'].value)+abs(Tparams_high['offs'].stderr/Tparams_high['offs'].value)+abs(Tparams_high['slope'].stderr/Tparams_high['slope'].value)
+					
+					#file output
+					fileprint_fit(log,Tparams_high,"Temperature (High)")
 
 
 				print "Temperature ... done!"
-
-				#console output
-				#print "-->T-Fit:\tA=%fK\n\t\tf=%fmHz\n\t\tO=%d-%dK\n\t\tb=%.2fK/h\n\t\tError:%f" % (Tfit_down[0], Tfit_down[1]*1000, start_parameters[2],max_Temp,Tfit_down[4]*3600, total_Terror_down)
-
-				#file output
-				log = open(date+"_"+samplename+"_"+T_profile+"_I-T-Fits.txt", 'w+')
-				fileprint_fit(log, Tfit_down, Terror_down,"Temperature (Down)")
-				log.write("#Temperature Fit Data\n----------\n\n")
-				log.write("#Amp [K]\tAmp_Error\tFreq [Hz]\tFreq_Error\tPhase\t\tPhase_Error\tOffset [K]\tOffset_Error\tSlope [K/s]\tSlope_Error\n")
-				log.write("%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n\n"% (Tfit_down[0],Terror_down[0],Tfit_down[1],Terror_down[1],Tfit_down[2],Terror_down[2],Tfit_down[3],Terror_down[3],Tfit_down[4],Terror_down[4]))
 
 				#Current Fit -----------------------------------------------------------------------------------------
 
