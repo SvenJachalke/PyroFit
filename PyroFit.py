@@ -62,6 +62,8 @@ area_a5 = 1.4668e-5									#for 5x5mm samples, e.g. SrTiO3, ...
 #areas from older skript versions
 area_d13_old = 1.3994e-4							#for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
 area_d15_old = 1.761e-4								#for single crystals with d=15mm
+#costums
+custom = pi/4.0*(14.0/1000)**2				#custorm values which has to be stored but no included in the list above
 
 
 # Functions-----------------------------------------------------------------------------------------------------------------
@@ -340,12 +342,12 @@ def listtoparam(liste, parameterdic):
 	return None
 def fit(x, y, start, end, slice):
 	"""
-	Peforms fit for y(x) with start and end values (indices) and returns Tfit and Terror lists
+	Peforms fit for y(x) with start and end values (indices) and returns fit dictionary
 	Input:	t [ndarray]
 			T [ndarray]
 			start [int]
 			end [int]
-	Return:	Tfit [list]
+	Return:	Params [lmfit dict]
 			Terror [list]
 	"""
 	
@@ -435,8 +437,10 @@ def get_area():
 		return area_a5, 0.0082*area_a5
 	elif input is "D":								#d5
 		return area_d5, 0.0082*area_d5
+	elif input is "Z":						#custom defined values
+		return custom, 0.0082*custom		
 	else:
-		return float(input), 0.0082*float(input)	#custom area
+		return float(input), 0.0082*float(input)	#direct area input
 
 
 #Main Program------------------------------------------------------------------------------------------------------------------
@@ -763,10 +767,10 @@ else:
 			
 			if temp_filter_flag == True:
 				tnew, Tnew_down, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
-				bild, ax1, ax2 = plot_graph(tnew, Tnew_down, Inew, T_profile)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew_down, Inew, T_profile)
 			else:
 				tnew, Tnew_down, Tnew_top, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
-				bild, ax1, ax2 = plot_graph(tnew, Tnew_down, Inew, T_profile)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew_down, Inew, T_profile)
 				l2 = ax1.plot(tnew[start_index:-5], Tnew_top[start_index:], 'go', label="T meas. (Top)")
 				ax1.autoscale(enable=True, axis='y', tight=None)
 				
@@ -844,7 +848,7 @@ else:
 				Iparams.add('slope', value=1e-10)
 
 				#initialize file output
-				log.write("#Current-Fit Data\n----------\n\n")
+				log.write("#Current-Fit Data\n#----------\n\n")
 				log.write("#Amp [I]\t\tAmp_Error\t\tFreq [Hz]\t\tPhase\t\tPhase_Error\tOffset [A]\tOffset_Error\tSlope [A/s]\tSlope_Error\n")
 
 				#perform partial fits
@@ -910,30 +914,14 @@ else:
 					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), 'c-')
 
 				#Legend for Current Plots
-				
-				#legend and information box
-				#box_text = r"Area:"+"\t"+format(area,'.3e')+r" $\mathrm{m^2}$"+"\n"+ r"$A_{\mathrm{I}}$:"+"\t"+format(Ifit[0],'.3e')+r" A"+"\n"+ r"$A_{\mathrm{T}}$:"+"\t"+format(Tfit_down[0],'.3f')+r" K"+"\n"+r"$f$:"+"\t     "+format(Tfit_down[1]*1000,'.3f')+" mHz"+"\n"+r"$\phi$:"+"\t\t"+format(degrees(phasediff),'.3f')+"$^{\circ}$"+"\n"+r"$p$:"+"\t     "+format(pyro_koeff*1e6,'.3f')+r" $\mathrm{\mu C/Km^2}$"
-				#box = plot_textbox(box_text)
-				
 				leg1 = ax1.legend(title="temperatures",loc='upper left')
-				
 				I_meas_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='o',color='r')
 				I_fit_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='r')
 				I_TSC_leg  = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='m')
 				I_pyro_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='c')
 				leg2 = ax2.legend((I_meas_leg,I_fit_leg,I_TSC_leg,I_pyro_leg),(r"I meas.",r"I-Fit", r"I$_{TSC}$", r"I$_{p}$"),loc='lower right',title="currents")
-
 				ax2.add_artist(leg1)	#bring legend to forground (ax2 is last layer)
 				ax2.add_artist(leg2)	#add current legend to ax2
-				#ax2.add_artist(box)
-
-
-
-
-				#I_plot = Rectangle((0, 0), 1, 1, fc="r")
-				#I_TSC = Rectangle((0,0), 1,1, fc="m")
-				#I_p = Rectangle((0,0), 1,1, fc ="c")
-				#ax2.legend([I_plot, I_TSC, I_p], ["data", "TSC", "pyro"], title="current",loc="lower right")
 				draw()
 				
 				print "Current ... done!"
@@ -958,36 +946,27 @@ else:
 				globale_intervalle = len(Ifit)
 
 				#area for pyroel. coefficent
-				input = raw_input("Area [m2]?:")
-				if input is "A":				#for PVDF (d=13,... mm)
-					flaeche = 1.3994e-4
-				elif input is "B":				#for cystalls (d=15mm)
-					flaeche = 1.761e-4
-				elif input is "C":				#STO Kristall M114
-					flaeche = 1.4668e-5
-				else:
-					flaeche = float(input)
-
-				area_error = 0.0082*flaeche
-
+				area, area_error = get_area()
+				
+				#array initialisation for pyro koeff
 				p = zeros((globale_intervalle,6))
 				perror = zeros((globale_intervalle,1))
 
 				for i in range(1,globale_intervalle):
-					phasediff = Tfit[2]-Ifit[i-1,2]
+					phasediff = Tfit_down[2]-Ifit[i-1,2]
 					if phasediff < 0.0:
 						phasediff = phasediff+2*pi
 					if phasediff > 2*pi:
 						phasediff = phasediff-2*pi
 
-					p[i-1,0] = (tnew[start_index+((i-1)*satzlaenge)]*Tfit[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit[4])+Tfit[3]	#Spalte1 - Temp
-					p[i-1,1] = ((Ifit[i-1,0]*sin(phasediff))/(flaeche*Tfit[0]*2*pi*Tfit[1]))							#Spalte2 - p (Sharp-Garn)
-					p[i-1,2] = (abs(Ifit[i-1,5])/(flaeche*Tfit[4]))											#Spalte3 - p (Glass-Lang-Steckel)
+					p[i-1,0] = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	#Spalte1 - Temp
+					p[i-1,1] = ((Ifit[i-1,0]*sin(phasediff))/(area*Tfit_down[0]*2*pi*Tfit_down[1]))							#Spalte2 - p (Sharp-Garn)
+					p[i-1,2] = (abs(Ifit[i-1,5])/(area*Tfit_down[4]))											#Spalte3 - p (Glass-Lang-Steckel)
 					p[i-1,3] = phasediff * 180/pi													#Spalte4 - Phasediff.
 					p[i-1,4] = abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))							#Spalte5 - ratio Pyro/TSC
 					p[i-1,5] = Ifit[i-1,5]
 
-					perror[i-1,0] = p_error_i(Tfit, Terror, Ifit, Ierror, phasediff, flaeche, area_error, i)
+					perror[i-1,0] = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)
 
 				#Remove zeros from array
 				p_new=vstack((trim_zeros(p[:,0]),trim_zeros(p[:,1]),trim_zeros(p[:,2]),trim_zeros(p[:,3]),trim_zeros(p[:,4]), trim_zeros(p[:,5])))
@@ -1011,7 +990,7 @@ else:
 				ax3.plot(p[:,0],(p[:,1]*1e6), "b.", label='Pyro-koeff-SG')
 				#ax3.plot(p[3:-2,0],(p[3:-2,2]*1e6), "r.", label='Pyro-koeff-GLS')
 
-				ax5=subplot(312)
+				ax5=subplot(312,sharex=ax3)
 				ax5.set_autoscale_on(True)#
 				ax5.set_xlim(270,420)
 				xticks(Tticks)
@@ -1057,7 +1036,7 @@ else:
 							P[Pindex-i-1,1] = P[Pindex-i,1]+abs(p[Pindex+1-i,1]*(p[Pindex+1-i,0]-p[Pindex-i,0]))	#Polarisation immer vom Vorgaenger hinzuaddieren
 
 					#Plot
-					ax6=subplot(313)
+					ax6=subplot(313,sharex=ax3)
 					ax6.set_autoscale_on(True)
 					ax6.set_xlim(270,420)
 					xticks(Tticks)
@@ -1077,7 +1056,7 @@ else:
 				log = open(log_name2, "w+")
 				log.write("#Berechnete Daten\n")
 				log.write("#----------------\n")
-				log.write("#Flaeche:\t%e m2\n" % flaeche)
+				log.write("#Flaeche:\t%e m2\n" % area)
 				log.write("#----------------\n")
 				log.write("#Temp\tPyro-Koeff(S-G)\t(Error)\tPyro-Koeff(L-S)\tPhasediff\tPolarization\n")
 				log.write("#[K]\t[C/K*m2]\tC/K*m2]\t[C/m2]\n")
