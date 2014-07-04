@@ -1489,6 +1489,39 @@ else:
 			print "--------------------------------"
 			print "...saving figure"
 			savefig(date+'_'+samplename+'_SineWave+Triangle.png')
+		
+		#SquareWave
+		elif T_profile == "SquareWave":
+			print "Mode:\t\tSquareWave"
+			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1fK" % (start_parameters[0], start_parameters[1]*1000, start_parameters[2])
+
+			#Interpolation and plot of data---
+			print "--------------------------------"
+			print "...plotting"
+			print "-----------"
+
+			bild = figure("SquareWave Plot")
+			ax1 = subplot(111)
+			ax2 = ax1.twinx()
+			
+			ax1.set_xlabel("time [s]",size=label_size)
+			ax1.set_ylabel("temperature [K]",color='b',size=label_size)
+			ax1.grid(b=None, which='major', axis='both', color='grey', linewidth=1)
+			ax1.tick_params(axis='y', colors='blue')
+			l1 = ax1.plot(Tdata[:,0],Tdata[:,1], 'bo', label="T meas. (Down)")
+			ax1.autoscale(enable=True, axis='y', tight=None)
+			ax1.legend(title="temperatures", loc='upper left')
+
+
+			#Plot Current
+			ax2.set_ylabel("current [A]",color='r',size=label_size)
+			ax2.tick_params(axis='y', colors='red')
+			ax2.autoscale(enable=True, axis='y', tight=None)
+			ax2.plot(Idata[:,0],Idata[:,1], 'ro', label="I meas.")
+			ax2.legend(title="currents", loc='lower right')
+			
+			show()
+		
 		else:
 			pass
 
