@@ -363,6 +363,61 @@ def fit(x, y, start, end, slice):
 	minimize(sinfunc, Params, args=(x[start:end:slice], y[start:end:slice]), method="leastsq")
 
 	return Params
+
+def ChynowethModel(params, t, data=None):
+	"""
+	Model for Chynoweth Fit
+	"""
+	p = params['p'].value
+	A = pi/4 * (0.015)**2
+	T0 = params['T0'].value
+	tau = params['tau'].value
+	offs = params['offs'].value
+
+	model = p*A*T0/tau*exp(-t/tau)+offs
+
+	if data==None:
+		return model
+	return model-data
+
+def ChynowethModel2(params,t,data=None):
+	"""
+	Second Model for Chynoweth Fit inlcuding H and FO
+	"""
+
+	d = 1e-3
+	A = pi/4 * (0.015)**2
+	P = 0.1
+	#F0 = P/A
+	c = (0.06*4.1868)/1e-3
+	rho = 7.45 * (1e-3/1e-6)
+	V = A*d
+	m = rho*V
+	H = c*m
+
+	p = params['p'].value
+	tau = params['tau'].value
+	offs = params['offs'].value
+	F0 = params['F0'].value
+
+	model = p*A*A*(F0/H)*exp(-t/tau)+offs
+
+	if data==None:
+		return model
+	return model-data
+
+def expChy(params, t, data=None):
+
+	tau = params['tau'].value
+	offs = params['offs'].value
+	B = params['B'].value
+	
+	model = B * exp(-t/tau) + offs
+
+	if data==None:
+		return model
+	return model-data
+
 def p_error(Tfit, Terror, Ifit, Ierror, phasediff, area, area_error):
 	"""
 	Culculates the error for the pyroelectric coefficient from all fitted values
@@ -1523,6 +1578,47 @@ else:
 			ax2.legend(title="currents", loc='lower right')
 			
 			show()
+			
+			print "give me fit range ..."
+			inputs = ginput(2)
+			
+			t_idx_min = abs(Idata[:,0]-inputs[0][0]).argmin()
+			t_idx_max = abs(Idata[:,0]-inputs[1][0]).argmin()
+			
+			Params = Parameters()
+			Params.add('tau', value=14.0, min=0.1, max=30.0)
+			Params.add('offs', value=1e-10)
+			Params.add('B',value=1)
+
+			#Params.add('T0', value=1)
+
+			
+			Results = minimize(expChy, Params, args=(Idata[t_idx_min:t_idx_max,0],Idata[t_idx_min:t_idx_max,1]), method="leastsq")
+
+			ax2.plot(Idata[t_idx_min:t_idx_max,0], expChy(Params, Idata[t_idx_min:t_idx_max,0]), 'm-', label=r'I$_{Chynoweth}$')
+
+			draw()
+			
+			B = Params['B'].value						#current faktor in exp. func (in A)
+			I_offs = Params['offs'].value				#offset current which has to be subtractet from B
+			
+			print B
+			
+			d = 1e-3
+			A = pi/4 * (0.015)**2
+			nu_Peltier = 0.12							#Efficiency form Quickcool datasheet ... Qmax = 1.5W, Pmax = 1.2A*2.2V = 2.64W; Qmax/Pmax = 0.56
+			P_Peltier = 0.35*0.56*nu_Peltier			#example PeltierPower in heating step
+			F0 = P_Peltier/A							#heating power per sample area (W/m2)
+			c = (0.06*4.1868)/1e-3						#specific heat capacacity (J/K*kg)
+			rho = 7.45 * 1000							#density (converted to kg/m3)
+			V = A*d										#sample volume (m3)
+			m = rho*V									#samplle mass (kg)
+			H = c*m										#heat capacity (J/K)
+			
+			
+			
+			p = ((B-I_offs)*H)/((A**2) * F0)
+			
 			
 			saving_figure()
 		
