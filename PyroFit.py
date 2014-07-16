@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Universal Script for PyroData Evaluation
 # (Use only for individual data records -- all files are contained in one single folder!!!)
@@ -6,8 +6,8 @@
 # Author:	Sven Jachalke
 # Mail:		sven.jachalke@phyik.tu-freiberg.de
 # Adress:	Institut fuer Experimentelle Physik
-#			Leipziger Strasse 23
-#			09596 Freiberg
+#		Leipziger Strasse 23
+#		09596 Freiberg
 #---------------------------------------------------------------------------------------------------------------------------
 #Necessary Python Packages:
 # - scipy.interpolate
@@ -32,6 +32,8 @@ single_crystal = False                              #for single crystals phase=9
 interpolation_step = 0.5
 fit_periods = 2										#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
+
+Ifit_counter_limit = 5								#repeat number when I-fit insufficient
 
 # General Settings----------------------------------------------------------------------------------------------------------
 # Plot Settings-------------------------------------------------------------------------------------------------------------
@@ -58,7 +60,7 @@ Ierror = [0,0,0,0,0]
 area_d5 = pi/4.0*(5.385/1000)**2					#for small Edwards shadow mask (d=5.385mm)
 area_d13 = pi/4.0*(12.68/1000)**2					#for big Edwards shadow mask (d=12.68mm)
 area_d15 = pi/4.0*(15.0/1000)**2					#for single crystals with d=15mm
-area_a5 = 1.4668e-5									#for 5x5mm samples, e.g. SrTiO3, ...
+area_a5 = 1.4668e-5						#for 5x5mm samples, e.g. SrTiO3, ...
 #areas from older skript versions
 area_d13_old = 1.3994e-4							#for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
 area_d15_old = 1.761e-4								#for single crystals with d=15mm
@@ -299,7 +301,7 @@ def sinfunc(params, x, data=None):
 	slope = params['slope'].value
 
 	model = amp*sin(2*pi*freq*x+phase)+offs+slope*x
-
+	
 	if data==None:
 		return model
 	return model-data
@@ -318,6 +320,19 @@ def expdecay(params, x, data=None):
 	if data==None:
 		return model
 	return model-data
+def linear(params, x, data=None):
+	"""
+	Model for linear function using lmfit module
+	input: Parameter dict (lmfit)
+	output: model
+	"""
+	a = params['a'].value
+	b = params['b'].value
+	model = a*x + b
+	if data==None:
+		return model
+	return model-data
+
 def extract_fit_relerr_params(params):
 	"""
 	Extract the fitted parameters from the Paramters Dict and put it into lists (values and errors)
@@ -340,29 +355,31 @@ def listtoparam(liste, parameterdic):
 	parameterdic.add('slope', value=liste[4])
 
 	return None
-def fit(x, y, start, end, slice):
+def fit(x, y, start, end, slice, start_parameters, vary_freq):
 	"""
 	Peforms fit for y(x) with start and end values (indices) and returns fit dictionary
 	Input:	t [ndarray]
 			T [ndarray]
 			start [int]
 			end [int]
-	Return:	Params [lmfit dict]
-			Terror [list]
+			start_paramters [list]
+			vary_freq [bool]
+	Return:	results [minimize instance]
+			Params [lmfit dict]
 	"""
 
 	#initialize list and dicts for fit
 	Params = Parameters()
 	Params.add('amp', value=start_parameters[0], min=0.1, max=40.0)
-	Params.add('freq', value=start_parameters[1], min=1e-5, max=0.1, vary=False)
+	Params.add('freq', value=start_parameters[1], min=1e-5, max=0.1, vary=vary_freq)
 	Params.add('phase', value=0.1, min=-2*pi, max=2*pi)
 	Params.add('offs', value=start_parameters[2], min=0.0)
 	Params.add('slope', value=start_parameters[3])
 
 	#perform fit
-	minimize(sinfunc, Params, args=(x[start:end:slice], y[start:end:slice]), method="leastsq")
+	result = minimize(sinfunc, Params, args=(x[start:end:slice], y[start:end:slice]), method="leastsq")
 
-	return Params
+	return result, Params
 
 def ChynowethModel(params, t, data=None):
 	"""
@@ -690,7 +707,7 @@ else:
 				print "... fitting"
 
 				#Fit temperature----------------------------------------------------------------------------------------
-				Tparams_down = fit(tnew, Tnew_down, start_index, len(Tnew_down)-1,1)
+				Tresult_down, Tparams_down = fit(tnew, Tnew_down, start_index, len(Tnew_down)-1,1,start_parameters, True)
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)		#write fit params to Tfit-list
 
 				#correction of phase < 0 or phase > 360 deg
@@ -698,12 +715,13 @@ else:
 
 				#plot of fits
 				ax1.plot(tnew[start_index:], sinfunc(Tparams_down, tnew[start_index:]), 'b-', label='T-Fit (Down)')
+				#ax1.plot(tnew[start_index:], Tresult_down.residual, 'b--', label='T-Res (Down)')		#fit of residual
 				draw()
 
 				#for top temperature
 				if temp_filter_flag == False:
 
-					Tparams_high = fit(tnew, Tnew_high, start_index, len(Tnew_high)-1,5)
+					Tresult_high, Tparams_high = fit(tnew, Tnew_high, start_index, len(Tnew_high)-1,5,start_parameters, True)
 					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 
 					#data corrections
@@ -711,19 +729,20 @@ else:
 
 					#plot of second fit
 					ax1.plot(tnew[start_index:-5], sinfunc(Tparams_high, tnew[start_index:-5]), 'g-', label='T-Fit (Top)')
+					#ax1.plot(tnew[start_index:], Tresult_down.residual, 'b--', label='T-Res (Top)')	#fit of residual
 					draw()
 
 				#Fit current ---------------------------------------------------------------------------------------------
 				#initialize parameters dict for current fit
 				Iparams = Parameters()
 				Iparams.add('amp', value=1e-10, min=1e-14, max=1e-3)
-				Iparams.add('freq', value=start_parameters[1], min=1e-5, max=0.1, vary=False)
+				Iparams.add('freq', value=Tparams_down['freq'].value, min=1e-5, max=0.1, vary=False)
 				Iparams.add('phase', value=pi/2, min=-2*pi, max=+2*pi)
 				Iparams.add('offs', value=1e-10)
 				Iparams.add('slope', value=1e-10)
 
 				#current fit
-				Iresults = minimize(sinfunc, Iparams, args=(tnew[start_index:], Inew[start_index:]), method="leastsq")
+				Iresult = minimize(sinfunc, Iparams, args=(tnew[start_index:],Inew[start_index:]), method="leastsq")
 				Ifit, Ierror = extract_fit_relerr_params(Iparams) 	#extract params dict
 
 				#phase corrections
@@ -855,7 +874,7 @@ else:
 				log = open(date+"_"+samplename+"_"+T_profile+"_T-I-Fits.txt", 'w+')
 
 				#Temperature Fit -------------------------------------------------------------------------------------
-				Tparams_down = fit(tnew, Tnew_down,start_index,limit,1)
+				Tresult_down, Tparams_down = fit(tnew, Tnew_down,start_index,limit,1, start_parameters, True)
 				#extract params dict to lists
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
 				#correction of phase < 0 or phase > 360 deg
@@ -871,7 +890,7 @@ else:
 
 				#for top temperature-------------------
 				if temp_filter_flag == False:
-					Tparams_high = fit(tnew, Tnew_top, start_index, limit,1)
+					Tresult_high, Tparams_high = fit(tnew, Tnew_top, start_index, limit,1, start_parameters, True)
 					#extract params dict to lists
 					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 					#correction of phase < 0 or phase > 360 deg
@@ -899,10 +918,14 @@ else:
 				Ierror = zeros((I_perioden-1,5))
 				Iparams = Parameters()
 				Iparams.add('amp', value=1e-11)#, min=1e-13, max=1e-7)
-				Iparams.add('freq', value=start_parameters[1], min=1e-5, max=0.1, vary=False)
+				Iparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.1, vary=False)
 				Iparams.add('phase', value=0.1, min=-pi, max=pi)
 				Iparams.add('offs', value=1e-10)
 				Iparams.add('slope', value=1e-10)
+				
+				Iparams_lin = Parameters()
+				Iparams_lin.add('a', value=1e-10)
+				Iparams_lin.add('b', value=0.0)
 
 				#initialize file output
 				log.write("#Current-Fit Data\n#----------\n\n")
@@ -912,9 +935,36 @@ else:
 				for i in arange(1,I_perioden):
 					start = start_index+int((i*satzlaenge)-satzlaenge)
 					ende = start_index+int(i*satzlaenge)
-					Iresults = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
-					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]), 'r-')
+					
+					#fit of sin and lin func
+					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+					
+					Ifit_counter = 1
+					if Iresult_lin.redchi < 2*Iresult_sin.redchi and Ifit_counter < Ifit_counter_limit:
+						
+						Iparams['amp'].value = (Ifit_counter)*1e-12
+						Iparams['phase'].value = Tfit_down[2]-pi/2
+						#Iparams['offs'].value = (Ifit_counter**2)*1e-10
+						#Iparams['slope'].value = (Ifit_counter**2)*1e-10
+						
+						Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+						
+						Ifit_counter =  Ifit_counter + 1
 
+					#print i, Ifit_counter
+					sys.stdout.write("\rFit-Progress: %d of %d intervals; Repeatings: %d" % (i,I_perioden-1,Ifit_counter))
+					sys.stdout.flush()
+					
+					#plot of sin and line fit
+					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]), 'r-')
+					ax2.plot(tnew[start:ende], linear(Iparams_lin, tnew[start:ende]), 'r--')
+					
+					#extract params dict to lists
+					#Ifit, Ierror = extract_fit_relerr_params(Iparams)
+					
+					
+					
 					#extrac fit parameters from dict to Ifit array
 					Ifit[i-1,0] = Iparams['amp'].value
 					Ifit[i-1,1] = Iparams['freq'].value
@@ -981,13 +1031,7 @@ else:
 				ax2.add_artist(leg2)	#add current legend to ax2
 				draw()
 
-				print "Current ... done!"
-
-				#Bereinigung von Ifit and Ierrors
-				#Ifit=vstack((trim_zeros(Ifit[:,0]),trim_zeros(Ifit[:,1]),trim_zeros(Ifit[:,2]),trim_zeros(Ifit[:,3]),trim_zeros(Ifit[:,4]), trim_zeros(Ifit[:,5])))
-				#Ifit = Ifit.transpose()
-				#Ierror=vstack((trim_zeros(Ierror[:,0]),trim_zeros(Ierror[:,2]),trim_zeros(Ierror[:,3]),trim_zeros(Ierror[:,4])))	#attention! freq.error column gets lost!
-				#Ierror = Ierror.transpose()
+				print "\nCurrent ... done!"
 
 				#file output
 				for i in range(1,len(Ifit)):
