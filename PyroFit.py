@@ -913,9 +913,12 @@ else:
 				#initialize fit variables
 				I_perioden = int(tnew[limit]/(fit_periods/start_parameters[1]))
 				satzlaenge = limit/I_perioden
-
-				Ifit = zeros((I_perioden-1,6))
-				Ierror = zeros((I_perioden-1,5))
+				
+				Ifit = zeros((1,6))
+				Ierror = zeros((1,5))
+				
+				#Ifit = zeros((I_perioden-1,6))
+				#Ierror = zeros((I_perioden-1,5))
 				Iparams = Parameters()
 				Iparams.add('amp', value=1e-11)#, min=1e-13, max=1e-7)
 				Iparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.1, vary=False)
@@ -961,32 +964,19 @@ else:
 					ax2.plot(tnew[start:ende], linear(Iparams_lin, tnew[start:ende]), 'r--')
 					
 					#extract params dict to lists
-					#Ifit, Ierror = extract_fit_relerr_params(Iparams)
-					
-					
-					
-					#extrac fit parameters from dict to Ifit array
-					Ifit[i-1,0] = Iparams['amp'].value
-					Ifit[i-1,1] = Iparams['freq'].value
-					Ifit[i-1,2] = Iparams['phase'].value
-					Ifit[i-1,3] = Iparams['offs'].value
-					Ifit[i-1,4] = Iparams['slope'].value
-					Ierror[i-1,0] = Iparams['amp'].stderr
-					Ierror[i-1,1] = Iparams['freq'].stderr
-					Ierror[i-1,2] = Iparams['phase'].stderr
-					Ierror[i-1,3] = Iparams['offs'].stderr
-					Ierror[i-1,4] = Iparams['slope'].stderr
+					Ifit_temp, Ierror_temp = extract_fit_relerr_params(Iparams)
+					Ifit_temp.append(mean(Idata[start:ende,1]))
+					if i==1:
+						Ifit = array([Ifit_temp])
+						Ierror = array([Ierror_temp])
+						Iresults = [Iresult_sin]		#save lmfit minizimer objects for later
+					else:
+						Ifit = append(Ifit,[array(Ifit_temp)],axis=0)
+						Ierror = append(Ierror,[array(Ierror_temp)],axis=0)
+						Iresults.append(Iresult_sin)
 
 					#data correction
-					if Ifit[i-1,0] < 0.0:
-						Ifit[i-1,0] = -1*Ifit[i-1,0]
-						Ifit[i-1,2] = Ifit[i-1,2]+pi
-					if Ifit[i-1,2] < 0.0:
-						Ifit[i-1,2] = Ifit[i-1,2]+2*pi
-					if Ifit[i-1,2] > 2*pi:
-						Ifit[i-1,2] = Ifit[i-1,2]-2*pi
-
-					Ifit[i-1,5] = mean(Idata[start:ende,1])
+					Ifit[i-1,2] = PhaseRangeCheck(Ifit[i-1,2])
 
 					#calculate phase difference
 					phasediff = Tfit_down[2]-Ifit[i-1,2]
