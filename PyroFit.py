@@ -38,7 +38,7 @@ Ifit_counter_limit = 5								#repeat number when I-fit insufficient
 # General Settings----------------------------------------------------------------------------------------------------------
 # Plot Settings-------------------------------------------------------------------------------------------------------------
 matplotlib.rcParams['legend.fancybox'] = True       #plot fancy box (round edges)
-label_size = '18'									#font size of x,y labels in plot
+label_size = '16'									#font size of x,y labels in plot
 enable_title = True									#enable/disable title in plot
 title_size = '15'									#font size of the figure title
 set_dpi = 300										#dpi for exporting figures
@@ -1040,7 +1040,7 @@ else:
 				area, area_error = get_area()
 
 				#array initialisation for pyro koeff
-				p = zeros((globale_intervalle,6))
+				p = zeros((globale_intervalle,7))
 				perror = zeros((globale_intervalle,1))
 
 				for i in range(1,globale_intervalle):
@@ -1050,19 +1050,15 @@ else:
 					if phasediff > 2*pi:
 						phasediff = phasediff-2*pi
 
-					p[i-1,0] = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	#Spalte1 - Temp
-					p[i-1,1] = ((Ifit[i-1,0]*sin(phasediff))/(area*Tfit_down[0]*2*pi*Tfit_down[1]))							#Spalte2 - p (Sharp-Garn)
-					p[i-1,2] = (abs(Ifit[i-1,5])/(area*Tfit_down[4]))																		#Spalte3 - p (Glass-Lang-Steckel)
-					p[i-1,3] = phasediff * 180/pi																									#Spalte4 - Phasediff.
-					p[i-1,4] = abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))											#Spalte5 - ratio Pyro/TSC
-					p[i-1,5] = Ifit[i-1,5]
+					p[i-1,0] = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
+					p[i-1,1] = ((Ifit[i-1,0]*sin(phasediff))/(area*Tfit_down[0]*2*pi*Tfit_down[1]))							# p (Sharp-Garn)
+					p[i-1,2] = (abs(Ifit[i-1,5])/(area*Tfit_down[4]))														# p (Glass-Lang-Steckel)
+					p[i-1,3] = phasediff * 180/pi																			# Phasediff.
+					p[i-1,4] = abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))								# ratio Pyro/TSC
+					p[i-1,5] = Ifit[i-1,5]																					# mean I in Interval
+					p[i-5,6] = Iresults[i-1].redchi																			# red Chi in Interval
 
 					perror[i-1,0] = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)
-
-				#Remove zeros from array
-				p_new=vstack((trim_zeros(p[:,0]),trim_zeros(p[:,1]),trim_zeros(p[:,2]),trim_zeros(p[:,3]),trim_zeros(p[:,4]), trim_zeros(p[:,5])))
-				p = p_new.transpose()
-				perror = trim_zeros((perror))
 
 				#Plotting p(T)
 				bild2=figure(date+"_"+samplename+'_Pyro')
@@ -1073,22 +1069,30 @@ else:
 				ax3.set_xlim(270,430)
 				ax3.set_ylim(min(p[:,1])*1e6-50, max(p[:,1])*1e6+50)
 				ax3.set_xlabel('Temp [K]',size=label_size)
-				ax3.set_ylabel(r"pyro. coeff. $\mathrm{\lbrack\frac{\mu C}{Km^{2}}\rbrack}$",color='b',size=label_size)
+				ax3.set_ylabel(r"p [$\mu$C/Km$^2$]",color='b',size=label_size)
 				xticks(Tticks)
 				ax3.grid(b=None, which='major', axis='both', color='grey')
-				ax3.errorbar(p[:,0],(p[:,1]*1e6), yerr=perror[:,0]*1e6, fmt='b.', elinewidth=None, capsize=3, label='Pyro-koeff-SG')
-				ax3.plot(p[:,0],(p[:,1]*1e6), "b.", label='Pyro-koeff-SG')
-				ax3.plot(p[:,0],(p[:,2]*1e6), "r.", label='Pyro-koeff-GLS')
+				ax3.errorbar(p[:,0],(p[:,1]*1e6), yerr=perror[:,0]*1e6, fmt="b.", elinewidth=None, capsize=3, label='p (SG)')
+				ax3.plot(p[:,0],(p[:,2]*1e6), "r.", label='p (GLS)')
+				ax3.legend(loc=3)
 
 				ax5=subplot(312,sharex=ax3)
-				ax5.set_autoscale_on(True)#
+				ax5.set_autoscale_on(True)
 				ax5.set_xlim(270,420)
 				xticks(Tticks)
 				ax5.grid(b=None, which='major', axis='both', color='grey')
 				ax5.set_xlabel('Temp [K]',size=label_size)
-				ax5.set_ylabel(r'$\mathrm{\frac{I_{p}}{I_{TSC}}}$',color='g',size=label_size)
-				#ax5.semilogy(p[3:-2,0], p[3:-2,4], "go", label="Pyro-Curr/Non-Pyro-Curr")
-				ax5.semilogy(p[:,0], p[:,4], "go", label="Pyro-Curr/Non-Pyro-Curr")
+				ax5.set_ylabel(r"I$_p$/I$_{TSC}$",color='g',size=label_size)
+				ax5.semilogy(p[:,0], p[:,4], "g.", label=r"I$_p$/I$_{TSC}$")
+
+				ax6=subplot(313,sharex=ax3)
+				ax6.set_autoscale_on(True)
+				ax6.set_xlim(270,420)
+				xticks(Tticks)
+				ax6.grid(b=None, which='major', axis='both', color='grey')
+				ax6.set_xlabel('Temp [K]',size=label_size)
+				ax6.set_ylabel(r"red. $X^2$",color='c',size=label_size)
+				ax6.semilogy(p[:,0], p[:,6], "c.", label=r"red. $X^2$")
 
 				show()
 
