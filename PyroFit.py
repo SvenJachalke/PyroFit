@@ -243,7 +243,7 @@ def plot_graph(tnew, Tnew_down, Inew, T_profile):
 	ax1 = subplot(111)
 	ax2 = ax1.twinx()
 	if enable_title == True:
-		title(samplename+"_SineWave", size=title_size)
+		title(samplename+"_"+T_profile, size=title_size)
 
 	#Plot Temperature
 	ax1.set_xlabel("time [s]",size=label_size)
@@ -278,13 +278,23 @@ def plot_textbox(boxtext):
 	box.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
 
 	return box
-def saving_figure():
+def saving_figure(bild, pbild=False):
 	"""
 	saves figure with individual filename composed of date, filename, T_profile and print on console
+	input:	bild - figure instance
+			pbild - bool, when True pyroelectric coefficient figure in SinLimRamp will be plotted
+	return: None
 	"""
 	print "--------------------------------"
-	print "...saving figure"
-	savefig(date+"_"+samplename+"_"+T_profile+".png", dpi=set_dpi, transparent=transparency_flag)
+	print "saving ..."
+	if pbild == False:
+		image_name = date+"_"+samplename+"_"+T_profile+"_T-I.png"
+		print("...Temperature/Current Plot\n%s" % image_name)
+		bild.savefig(image_name, dpi=set_dpi, transparent=transparency_flag)
+	else:
+		image_name = date+"_"+samplename+"_"+T_profile+"_p.png"
+		print("...Pyro Plot\n%s" % image_name)
+		bild.savefig(image_name, dpi=set_dpi, transparent=transparency_flag)
 	return None
 
 # fit functions ---------------------------------------------------------------------------------------------------------------
@@ -647,7 +657,7 @@ else:
 			show()
 
 			#saving figure
-			saving_figure()
+			saving_figure(bild)
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#LinearRamp Method
@@ -676,7 +686,7 @@ else:
 			ax2.add_artist(box)
 			show()
 
-			saving_figure()
+			saving_figure(bild)
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#SineWave Method
@@ -828,7 +838,7 @@ else:
 				pass
 
 			#saving figure----------------------------------------------------------------------------------------------------
-			saving_figure()
+			saving_figure(bild)
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#SineWave+LinearRamp Method
@@ -1140,11 +1150,10 @@ else:
 					ax6.plot(P[:,0], P[:,1]*1e3, "ko", label="Polarization")
 
 				#Saving results and figs------------------------------------------------------------------------------
-				print "...saving figures"
-				name = date+samplename
-				bild1.savefig(date+"_"+samplename+"_SineWave+LinRamp_I-T-Fits.png")
-				bild2.savefig(date+"_"+samplename+"_SineWave+LinRamp_p-P.png")
+				saving_figure(bild1)
+				saving_figure(bild2, pbild=True)
 
+				print "--------------------------------"
 				print "...writing log files"
 				log_name2 = date+"_"+samplename+"_SineWave+LinRamp_p-Fits.txt"
 				log = open(log_name2, "w+")
