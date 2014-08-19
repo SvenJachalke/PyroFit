@@ -128,23 +128,60 @@ def extract_measurementmode(filename):
 def extract_T_stimulation_params(filename):
 	"""
 	Return set parameters of the temperature stimulation, which are located in the header of the Temperature file
-	input: filename [str]
-	output: list of paramters [[float], ...]
-		amp, freq, offs, heat_rate, cool_rate, T_Limit_H, T_Limit_L
+	input:	filename [str]
+	output:	T_stimulation_params_dict [dict] (contains key:value pair for each finding)
 	"""
 	if filename.endswith("TEMP-t-Tpelt-Tsoll-Tsample.log"):
 		datei = open(filename, 'r')
-		hv_mode = datei.readline().strip().split(" ")[1]
-		waveform = datei.readline().strip().split(" ")[1]
-		amp = datei.readline().strip().split(" ")[1]
-		freq = datei.readline().strip().split(" ")[1]
-		offs = datei.readline().strip().split(" ")[1]
-		heat_rate = datei.readline().strip().split(" ")[1]
-		cool_rate = datei.readline().strip().split(" ")[1]
-		T_Limit_H = datei.readline().strip().split(" ")[1]
-		T_Limit_L = datei.readline().strip().split(" ")[1]
+		T_stimulation_params_dict = {}
+		
+		try:
+			hv_mode = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"hv_mode":hv_mode})
+		except:
+			pass
+		try:
+			waveform = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"waveform":waveform})
+		except:
+			pass
+		try:
+			amp = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"amp":float(amp)})
+		except:
+			pass
+		try:
+			freq = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"freq":float(freq)})
+		except:
+			pass
+		try:
+			offs = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"offs":float(offs)})
+		except:
+			pass
+		try:
+			heat_rate = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"heat_rate":float(heat_rate)})
+		except:
+			pass
+		try:
+			cool_rate = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"cool_rate":float(cool_rate)})
+		except:
+			pass
+		try:
+			T_Limit_H = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"T_Limit_H":float(T_Limit_H)})
+		except:
+			pass
+		try:
+			T_Limit_L = datei.readline().strip().split(" ")[1]
+			T_stimulation_params_dict.update({"T_Limit_L":float(T_Limit_L)})
+		except:
+			pass
 		datei.close()
-		return [float(amp), float(freq), float(offs), float(heat_rate), float(cool_rate), float(T_Limit_H), float(T_Limit_L)]
+		return T_stimulation_params_dict
 def extract_HV_params(filename):
 	"""
 	Returns a list with set HV-settings
@@ -321,11 +358,7 @@ def expdecay(params, x, data=None):
 	input: Parameters Dict (lmfit)
 	output: decay model
 	"""
-	A = params['factor'].value
-	decay = params['decay'].value
-	offs = params['offs'].value
-
-	model = A*np.exp(-x/decay) + offs
+	model = params['A'].value * exp(-x/ params['decay'].value) + params['offs'].value
 
 	if data==None:
 		return model
@@ -380,11 +413,11 @@ def fit(x, y, start, end, slice, start_parameters, vary_freq):
 
 	#initialize list and dicts for fit
 	Params = Parameters()
-	Params.add('amp', value=start_parameters[0], min=0.1, max=40.0)
-	Params.add('freq', value=start_parameters[1], min=1e-5, max=0.1, vary=vary_freq)
+	Params.add('amp', value=measurement_info['amp'], min=0.1, max=40.0)
+	Params.add('freq', value=measurement_info['freq'], min=1e-5, max=0.1, vary=vary_freq)
 	Params.add('phase', value=0.1, min=-2*pi, max=2*pi)
-	Params.add('offs', value=start_parameters[2], min=0.0)
-	Params.add('slope', value=start_parameters[3])
+	Params.add('offs', value=measurement_info['offs'], min=0.0)
+	Params.add('slope', value=measurement_info['heat_rate'])
 
 	#perform fit
 	result = minimize(sinfunc, Params, args=(x[start:end:slice], y[start:end:slice]), method="leastsq")
@@ -433,6 +466,7 @@ def ChynowethModel2(params,t,data=None):
 		return model
 	return model-data
 
+	#redundant with expdecay func!!!!
 def expChy(params, t, data=None):
 
 	tau = params['tau'].value
@@ -547,10 +581,14 @@ for filename in filelist:
 
 	if datatype=="Temperature":
 		HV_status, T_profile = extract_measurementmode(filename)
-		start_parameters = extract_T_stimulation_params(filename)
+		measurement_info = extract_T_stimulation_params(filename)
 		samplename = extract_samplename(filename)
-		Tdata = loadtxt(filename, skiprows=9)
-
+		if measurement_info['waveform'] == 'PWRSquareWave':
+			Tdata = loadtxt(filename, skiprows=10)
+		else:
+		#---> bei PWRSquareWave gibt es Header BUG!!!!
+			Tdata = loadtxt(filename, skiprows=9)
+		
 		#previous filter of Tdata
 		erase_bools_T = (Tdata[:,1]!=9.9e39)	#overflow on down temperature
 		Tdata = Tdata[erase_bools_T]
@@ -628,12 +666,12 @@ else:
 	#------------------------------------------------------------------------------------------------------------------------
 
 	#normal measurement routines without HV (SinWave, LinRamp, ...)
-	if HV_status == "Off":
+	if measurement_info['hv_mode'] == "Off":
 		#Thermostat Method
 		#--------------------------------------------------------------------------------------------------------------------
-		if T_profile == "Thermostat":
+		if measurement_info['waveform'] == "Thermostat":
 			print "Mode:\t\tThermostat"
-			print "Temperature:\t%.1fK" % start_parameters[5]
+			print "Temperature:\t%.1fK" % measurement_info['T_Limit_H']
 
 			#Interpolation and plotting of data ----
 			print "--------------------------------"
@@ -651,7 +689,7 @@ else:
 				ax1.legend(title="temperatures", loc='upper right')
 
 			#text box
-			box_text = "Temperature: "+str(start_parameters[5]) + "K"
+			box_text = "Temperature: "+str(measurement_info['T_Limit_H']) + "K"
 			box = plot_textbox(box_text)
 			ax2.add_artist(box)
 			show()
@@ -661,9 +699,9 @@ else:
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#LinearRamp Method
-		elif T_profile == "LinRamp":
+		elif measurement_info['waveform'] == "LinRamp":
 			print "Mode:\t\tLinRamp"
-			print "Temperature:\t%.1fK\nSlope:\t%.1fK" % (start_parameters[5], start_parameters[3])
+			print "Temperature:\t%.1fK\nSlope:\t%.1fK/h" % (measurement_info['offs'],measurement_info['heat_rate']*3600)
 
 			#Interpolation of data -----------------
 			print "--------------------------------"
@@ -681,7 +719,7 @@ else:
 				ax1.legend(title="temperatures", loc='upper right')
 
 			#text box
-			box_text = "Temperature: "+str(start_parameters[5]) + "K\nSlope: " + str(start_parameters[3]*3600) + "K/h"
+			box_text = "Temperature: "+str(measurement_info['offs']) + "K\nSlope: " + str(measurement_info['heat_rate']*3600) + "K/h"
 			box = plot_textbox(box_text)
 			ax2.add_artist(box)
 			show()
@@ -690,9 +728,9 @@ else:
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#SineWave Method
-		elif T_profile == "SineWave":
+		elif measurement_info['waveform'] == "SineWave":
 			print "Mode:\t\tSineWave"
-			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1fK" % (start_parameters[0], start_parameters[1]*1000, start_parameters[2])
+			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1fK" % (measurement_info['amp'], measurement_info['freq']*1000, measurement_info['offs'])
 
 			#Interpolation and plot of data---
 			print "--------------------------------"
@@ -717,7 +755,7 @@ else:
 				print "... fitting"
 
 				#Fit temperature----------------------------------------------------------------------------------------
-				Tresult_down, Tparams_down = fit(tnew, Tnew_down, start_index, len(Tnew_down)-1,1,start_parameters, True)
+				Tresult_down, Tparams_down = fit(tnew, Tnew_down, start_index, len(Tnew_down)-1,1,measurement_info, True)
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)		#write fit params to Tfit-list
 
 				#correction of phase < 0 or phase > 360 deg
@@ -731,7 +769,7 @@ else:
 				#for top temperature
 				if temp_filter_flag == False:
 
-					Tresult_high, Tparams_high = fit(tnew, Tnew_high, start_index, len(Tnew_high)-1,5,start_parameters, True)
+					Tresult_high, Tparams_high = fit(tnew, Tnew_high, start_index, len(Tnew_high)-1,5,measurement_info, True)
 					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 
 					#data corrections
@@ -842,9 +880,9 @@ else:
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#SineWave+LinearRamp Method
-		elif T_profile == "SineWave+LinRamp":
+		elif measurement_info['waveform'] == "SineWave+LinRamp":
 			print "Mode:\t\tSineWave+LinRamp"
-			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1f-%.1fK\n\t\tb=%.2fK/h" % (start_parameters[0], start_parameters[1]*1000, start_parameters[2],start_parameters[5], start_parameters[3]*3600)
+			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1f-%.1fK\n\t\tb=%.2fK/h" % (measurement_info['amp'], measurement_info['freq']*1000, measurement_info['offs'],measurement_info['T_Limit_H'], measurement_info['heat_rate']*3600)
 
 			#Interpolation of data-----------
 			print "--------------------------------"
@@ -867,12 +905,12 @@ else:
 
 				#important calculations for further fit;)--------------------------------------------------------------
 				#check when ramp runs into T_Limit_H
-				maxT_ind = Tnew_down>(start_parameters[5]-1)
+				maxT_ind = Tnew_down>(measurement_info['T_Limit_H']-1)
 				number_of_lim = maxT_ind.tolist().count(True)
 				limit = len(Tnew_down)-number_of_lim-1
 
-				max_Temp = tnew[limit]*start_parameters[3]+start_parameters[2]
-				T_perioden = int(tnew[limit]/(1/start_parameters[1]))
+				max_Temp = tnew[limit]*measurement_info['heat_rate']+measurement_info['offs']
+				T_perioden = int(tnew[limit]/(1/measurement_info['freq']))
 				tmax = tnew[limit]
 				satzlaenge = (limit-start_index)/T_perioden
 
@@ -884,7 +922,7 @@ else:
 				log = open(date+"_"+samplename+"_"+T_profile+"_T-I-Fits.txt", 'w+')
 
 				#Temperature Fit -------------------------------------------------------------------------------------
-				Tresult_down, Tparams_down = fit(tnew, Tnew_down,start_index,limit,1, start_parameters, True)
+				Tresult_down, Tparams_down = fit(tnew, Tnew_down,start_index,limit,1,measurement_info, True)
 				#extract params dict to lists
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
 				#correction of phase < 0 or phase > 360 deg
@@ -900,7 +938,7 @@ else:
 
 				#for top temperature-------------------
 				if temp_filter_flag == False:
-					Tresult_high, Tparams_high = fit(tnew, Tnew_top, start_index, limit,1, start_parameters, True)
+					Tresult_high, Tparams_high = fit(tnew, Tnew_top, start_index, limit,1, measurement_info, True)
 					#extract params dict to lists
 					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 					#correction of phase < 0 or phase > 360 deg
@@ -921,7 +959,7 @@ else:
 				#Current Fit -----------------------------------------------------------------------------------------
 
 				#initialize fit variables
-				I_perioden = int(tnew[limit]/(fit_periods/start_parameters[1]))
+				I_perioden = int(tnew[limit]/(fit_periods/measurement_info[1]))
 				satzlaenge = limit/I_perioden
 				
 				Ifit = zeros((1,6))
@@ -1179,9 +1217,9 @@ else:
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#TriangleHat
-		elif T_profile == "TriangleHat":
+		elif measurement_info['waveform'] == "TriangleHat":
 			print "Mode:\t\tTriangle"
-			print "Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h" % (start_parameters[2], start_parameters[5], start_parameters[2], start_parameters[3]*3600, start_parameters[4]*3600)
+			print "Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['freq'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600)
 
 			#Plotting of data
 			print "...plotting"
@@ -1214,7 +1252,7 @@ else:
 			savefig()
 
 		#SineWave+TriangleHat----------------------------------------------------------------------------------------------------
-		elif T_profile == "SineWave+TriangleHat":
+		elif measurement_info['waveform'] == "SineWave+TriangleHat":
 			print "Mode:\t\tSineWave+Triang"
 			print "Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h\n\t\tA=%.1fK\n\t\tf=%.1fmHz" % (start_parameters[2], start_parameters[5], start_parameters[2], start_parameters[3]*3600, start_parameters[4]*3600, start_parameters[0], start_parameters[1]*1000)
 
@@ -1593,7 +1631,7 @@ else:
 			savefig(date+'_'+samplename+'_SineWave+Triangle.png')
 		
 		#SquareWave
-		elif T_profile == "SquareWave":
+		elif measurement_info['waveform'] == "SquareWave":
 			print "Mode:\t\tSquareWave"
 			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1fK" % (start_parameters[0], start_parameters[1]*1000, start_parameters[2])
 
@@ -1669,6 +1707,62 @@ else:
 			
 			saving_figure()
 		
+		elif measurement_info['waveform'] == "PWRSquareWave":
+			print "Mode:\t\tPower-SquareWave"
+			#note: hier in Zukunft Angaben printen --- d.h. I_set und U_set muessen noch mitgelogt werden, freq. kann auch geschrieben werden!
+			
+			#plot of data------------------------------------------------------------------------
+			print "--------------------------------"
+			print "...plotting"
+			print "-----------"
+
+			#plot of raw data-------------------------------------------------------------------
+			#note: start index of plot is here 5 --> can be automated ;)
+			bild = figure("Power-SquareWave Plot")
+			ax1 = subplot(111)
+			ax2 = ax1.twinx()
+			
+			ax1.set_xlabel("time [s]",size=label_size)
+			ax1.set_ylabel("temperature [K]",color='b',size=label_size)
+			ax1.grid(b=None, which='major', axis='both', color='grey', linewidth=1)
+			ax1.tick_params(axis='y', colors='blue')
+			#ax1.set_ylim(305,315)
+			l1 = ax1.plot(Tdata[5:,0],Tdata[5:,1], 'bo', label="T meas. (Down)")
+			ax1.autoscale(enable=True, axis='y', tight=None)
+			ax1.legend(title="temperatures", loc='upper left')
+
+			#Plot Current
+			ax2.set_ylabel("current [A]",color='r',size=label_size)
+			ax2.tick_params(axis='y', colors='red')
+			ax2.autoscale(enable=True, axis='y', tight=None)
+			ax2.plot(Idata[5:,0],Idata[5:,1], 'r-', label="I meas.")
+			ax2.legend(title="currents", loc='lower right')
+			
+			show()
+			
+			# select fiting range for exp. decay fit
+			print "give me fit range ..."
+			inputs = ginput(2)
+			t_idx_min = abs(Idata[:,0]-inputs[0][0]).argmin()
+			t_idx_max = abs(Idata[:,0]-inputs[1][0]).argmin()
+			
+			#perform fit
+			Params = Parameters()
+			Params.add('decay', value=14.0, min=0.1, max=30.0)
+			Params.add('offs', value=1e-10)
+			Params.add('A',value=1)
+			Results = minimize(expdecay, Params, args=(Idata[t_idx_min:t_idx_max,0],Idata[t_idx_min:t_idx_max,1]), method="leastsq")
+			
+			#print fit
+			consoleprint_fit(Params, "exp. decay")
+			
+			#draw results
+			ax2.plot(Idata[t_idx_min:t_idx_max,0], expdecay(Params, Idata[t_idx_min:t_idx_max,0]), 'm-', label=r'I$_{Chynoweth}$')
+			ax2.legend(title="currents", loc='lower right')
+			draw()
+			
+			#saving figure----------------------------------------------------------------------------------------------------
+			saving_figure(bild)
 		else:
 			pass
 
@@ -1677,7 +1771,7 @@ else:
 
 	#-----------------------------------------------------------------------------------------------------------------------------
 	#AutoPol
-	elif HV_status == "Polarize":
+	elif measurement_info['hv_mode'] == "Polarize":
 		print "Mode:\t\tAutoPolarization"
 		print "Temperature:\t%.2f K" % start_parameters[5]
 		print "max. Voltage:\t%.2f V" % max(HVdata[:,1])
@@ -1762,7 +1856,7 @@ else:
 
 	#-----------------------------------------------------------------------------------------------------------------------------
 	#HighVoltage always on
-	elif HV_status == "On":
+	elif measurement_info['hv_mode'] == "On":
 		#---------------------------------------------------------------------------------------------------------------------
 		if T_profile == "Thermostat":
 			print "Mode:\t\tHV_on+Thermostat"
