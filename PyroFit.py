@@ -1773,7 +1773,7 @@ else:
 	#AutoPol
 	elif measurement_info['hv_mode'] == "Polarize":
 		print "Mode:\t\tAutoPolarization"
-		print "Temperature:\t%.2f K" % start_parameters[5]
+		print "Temperature:\t%.2f K" % measurement_info['T_Limit_H']
 		print "max. Voltage:\t%.2f V" % max(HVdata[:,1])
 		print "Compliance:\t%.2e A" % HV_set[1]
 		print "--------------------------------"
@@ -1843,7 +1843,7 @@ else:
 			print "-->Exp-Fit:\tA=%e\n\t\tt0=%ds\n\t\tO=%eA" % (expparams['factor'].value, expparams['decay'].value, expparams['offs'].value)
 
 		else:
-			box_text = "Temperature: "+str(start_parameters[5])+" K\nmax.Voltage: "+str(max(HVdata[:,1]))+" V\nCompliance: "+str(HV_set[1])+" A"
+			box_text = "Temperature: "+str(measurement_info['T_Limit_H'])+" K\nmax.Voltage: "+str(max(HVdata[:,1]))+" V\nCompliance: "+str(HV_set[1])+" A"
 			box = figtext(0.65,0.15,box_text,fontdict=None, bbox=dict(facecolor='white', alpha=0.5))
 
 		draw()
@@ -1861,8 +1861,7 @@ else:
 		if T_profile == "Thermostat":
 			print "Mode:\t\tHV_on+Thermostat"
 			print "Voltage:\t%.1fV" % HV_set[0]	#for future use
-			print "Temperature:\t%.1fK" % start_parameters[5]
-
+			print "Temperature:\t%.1fK" % measurement_info['T_Limit_H']
 			#Plotting of data
 			print "--------------------------------"
 			print "...plotting"
