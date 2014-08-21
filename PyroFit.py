@@ -959,7 +959,7 @@ else:
 				#Current Fit -----------------------------------------------------------------------------------------
 
 				#initialize fit variables
-				I_perioden = int(tnew[limit]/(fit_periods/measurement_info[1]))
+				I_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
 				satzlaenge = limit/I_perioden
 				
 				Ifit = zeros((1,6))
@@ -1747,19 +1747,58 @@ else:
 			t_idx_max = abs(Idata[:,0]-inputs[1][0]).argmin()
 			
 			#perform fit
-			Params = Parameters()
-			Params.add('decay', value=14.0, min=0.1, max=30.0)
-			Params.add('offs', value=1e-10)
-			Params.add('A',value=1)
-			Results = minimize(expdecay, Params, args=(Idata[t_idx_min:t_idx_max,0],Idata[t_idx_min:t_idx_max,1]), method="leastsq")
+			IParams = Parameters()
+			IParams.add('decay', value=20, max=100)
+			IParams.add('offs', value=1e-12, min=1e-14)
+			IParams.add('A',value=1e-7)
+			IResults = minimize(expdecay, IParams, args=(Idata[t_idx_min:t_idx_max,0],Idata[t_idx_min:t_idx_max,1]), method="leastsq")
+			
+			ax2.plot(Idata[t_idx_min:t_idx_max,0], expdecay(IParams, Idata[t_idx_min:t_idx_max,0]), 'm-', label=r'I$_{Chynoweth}$')
+			
+			t_idx_min = abs(Tdata[:,0]-inputs[0][0]).argmin()
+			t_idx_max = abs(Tdata[:,0]-inputs[1][0]).argmin()
+
+			TParams = Parameters()
+			TParams.add('decay', value=IParams['decay'].value)
+			TParams.add('offs', value=300, min=0)
+			TParams.add('A',value=100)
+			TResults = minimize(expdecay, TParams, args=(Tdata[t_idx_min:t_idx_max,0],Tdata[t_idx_min:t_idx_max,1]), method="leastsq")
+			
 			
 			#print fit
-			consoleprint_fit(Params, "exp. decay")
+			consoleprint_fit(IParams, "Current")
+			consoleprint_fit(TParams,"Temperature")
 			
 			#draw results
-			ax2.plot(Idata[t_idx_min:t_idx_max,0], expdecay(Params, Idata[t_idx_min:t_idx_max,0]), 'm-', label=r'I$_{Chynoweth}$')
+			ax1.plot(Tdata[t_idx_min:t_idx_max,0], expdecay(TParams, Tdata[t_idx_min:t_idx_max,0]), 'b-', label=r'T$_{exp}$')
+
 			ax2.legend(title="currents", loc='lower right')
 			draw()
+			
+			#calculating p
+			# p = I_0 * C / A^2 * F_0
+			
+			I = 0.5 #A
+			U = 4.5 #V
+			nu = 0.12 #efficiency
+			
+			area = get_area()
+			F_0 = ((U*I*nu) / area[0])
+			#F_01 = ((U*I) / area[0])
+			c = (0.15*4.1868)/1e-3 #converted from crystec data sheet for LN
+			rho = 4.65 * (1e-3/1e-6) #*1000
+			d = 1e-3 #1mm
+			V = area[0] * d
+			m = rho * V
+			C = c * m
+			
+			#Ansatz F0 für tau auszurechen --> auch nicht zufriedenstellend :(
+			F_0 = m * C * TParams['offs'].value / (IParams['decay'].value * area[0])
+			
+			p = (IParams['A'].value * C)/(area[0]**2 * F_0)
+			
+			print (p*1e6)
+			
 			
 			#saving figure----------------------------------------------------------------------------------------------------
 			saving_figure(bild)
