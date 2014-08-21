@@ -823,12 +823,12 @@ else:
 				#Pyrostrom
 				#c=cyan (Pyro)
 				Ip = abs(Ifit[0]*sin(phasediff))
-				p_params = [Ip, Tfit_down[1], Tfit_down[2]+pi/2, Ifit[3], Ifit[4]]
+				#p_params = [Ip, Tfit_down[1], Tfit_down[2]+pi/2, Ifit[3], Ifit[4]]
 
-				#if phasediff >= 0.0:
-				#	p_params = [Ip, Tfit_down[1], Tfit_down[2]+pi/2, Ifit[3], Ifit[4]]
-				#else:
-				#	p_params = [Ip, Tfit_down[1], Tfit_down[2]-pi/2, Ifit[3], Ifit[4]]
+				if phasediff >= 0.0:
+					p_params = [Ip, Tfit_down[1], Tfit_down[2]-pi/2, Ifit[3], Ifit[4]]
+				else:
+					p_params = [Ip, Tfit_down[1], Tfit_down[2]+pi/2, Ifit[3], Ifit[4]]
 				pyroparams = Parameters()
 				listtoparam(p_params, pyroparams)
 				ax2.plot(tnew[start_index:], sinfunc(pyroparams, tnew[start_index:]), 'c-', label=r'I$_{p}$')
