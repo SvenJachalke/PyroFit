@@ -27,7 +27,7 @@ from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 # User Settings-------------------------------------------------------------------------------------------------------------
 upper_I_lim = 1e-7                                  #limitation of current in plot and fit (for spikes, ...)
 temp_filter_flag = True                             #plot/fit of second temperature (top PT100)
-start_index = 100                                   #start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 100                                  #start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                              #for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
 fit_periods = 2										#how many periods have to fitted with sine wave in SinLinRamp
@@ -528,9 +528,9 @@ def PhaseRangeCheck(phase):
 	input: phase [float] -- deg
 	output: corrected phase [float] -- deg
 	"""
-	if phase>2*pi:
+	if phase>pi:
 		return phase-2*pi
-	elif phase <-2*pi:
+	elif phase <-pi:
 		return phase+2*pi
 	else:
 		return phase
@@ -823,12 +823,12 @@ else:
 				#Pyrostrom
 				#c=cyan (Pyro)
 				Ip = abs(Ifit[0]*sin(phasediff))
-				#p_params = [Ip, Tfit_down[1], Tfit_down[2]+pi/2, Ifit[3], Ifit[4]]
+				p_params = [Ip, Tfit_down[1], Tfit_down[2]-pi/2, Ifit[3], Ifit[4]]
 
-				if phasediff >= 0.0:
-					p_params = [Ip, Tfit_down[1], Tfit_down[2]-pi/2, Ifit[3], Ifit[4]]
-				else:
-					p_params = [Ip, Tfit_down[1], Tfit_down[2]+pi/2, Ifit[3], Ifit[4]]
+				#if phasediff >= 0.0:
+				#	p_params = [Ip, Tfit_down[1], Tfit_down[2]-pi/2, Ifit[3], Ifit[4]]
+				#else:
+				#	p_params = [Ip, Tfit_down[1], Tfit_down[2]+pi/2, Ifit[3], Ifit[4]]
 				pyroparams = Parameters()
 				listtoparam(p_params, pyroparams)
 				ax2.plot(tnew[start_index:], sinfunc(pyroparams, tnew[start_index:]), 'c-', label=r'I$_{p}$')
