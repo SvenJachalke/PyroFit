@@ -424,61 +424,6 @@ def fit(x, y, start, end, slice, start_parameters, vary_freq):
 
 	return result, Params
 
-def ChynowethModel(params, t, data=None):
-	"""
-	Model for Chynoweth Fit
-	"""
-	p = params['p'].value
-	A = pi/4 * (0.015)**2
-	T0 = params['T0'].value
-	tau = params['tau'].value
-	offs = params['offs'].value
-
-	model = p*A*T0/tau*exp(-t/tau)+offs
-
-	if data==None:
-		return model
-	return model-data
-
-def ChynowethModel2(params,t,data=None):
-	"""
-	Second Model for Chynoweth Fit inlcuding H and FO
-	"""
-
-	d = 1e-3
-	A = pi/4 * (0.015)**2
-	P = 0.1
-	#F0 = P/A
-	c = (0.06*4.1868)/1e-3
-	rho = 7.45 * (1e-3/1e-6)
-	V = A*d
-	m = rho*V
-	H = c*m
-
-	p = params['p'].value
-	tau = params['tau'].value
-	offs = params['offs'].value
-	F0 = params['F0'].value
-
-	model = p*A*A*(F0/H)*exp(-t/tau)+offs
-
-	if data==None:
-		return model
-	return model-data
-
-	#redundant with expdecay func!!!!
-def expChy(params, t, data=None):
-
-	tau = params['tau'].value
-	offs = params['offs'].value
-	B = params['B'].value
-	
-	model = B * exp(-t/tau) + offs
-
-	if data==None:
-		return model
-	return model-data
-
 def p_error(Tfit, Terror, Ifit, Ierror, phasediff, area, area_error):
 	"""
 	Culculates the error for the pyroelectric coefficient from all fitted values
@@ -759,11 +704,11 @@ else:
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)		#write fit params to Tfit-list
 
 				#correction of phase < 0 or phase > 360 deg
-				Tfit_down[2] = PhaseRangeCheck(Tfit_down[2])
+				#Tfit_down[2] = PhaseRangeCheck(Tfit_down[2])
 
 				#plot of fits
 				ax1.plot(tnew[start_index:], sinfunc(Tparams_down, tnew[start_index:]), 'b-', label='T-Fit (Down)')
-				#ax1.plot(tnew[start_index:], Tresult_down.residual, 'b--', label='T-Res (Down)')		#fit of residual
+				#ax1.plot(tnew[start_index:], Tresult_down.residual, 'b--', label='T-Res (Down)')		#residual
 				draw()
 
 				#for top temperature
@@ -773,11 +718,11 @@ else:
 					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 
 					#data corrections
-					Tfit_high[2] = PhaseRangeCheck(Tfit_high[2])
+					#Tfit_high[2] = PhaseRangeCheck(Tfit_high[2])
 
 					#plot of second fit
 					ax1.plot(tnew[start_index:-5], sinfunc(Tparams_high, tnew[start_index:-5]), 'g-', label='T-Fit (Top)')
-					#ax1.plot(tnew[start_index:], Tresult_down.residual, 'b--', label='T-Res (Top)')	#fit of residual
+					#ax1.plot(tnew[start_index:], Tresult_down.residual, 'b--', label='T-Res (Top)')	#residual
 					draw()
 
 				#Fit current ---------------------------------------------------------------------------------------------
@@ -794,7 +739,7 @@ else:
 				Ifit, Ierror = extract_fit_relerr_params(Iparams) 	#extract params dict
 
 				#phase corrections
-				Ifit[2] = PhaseRangeCheck(Ifit[2])
+				#Ifit[2] = PhaseRangeCheck(Ifit[2])
 
 				#plot current fit
 				ax2.plot(tnew[start_index:], sinfunc(Iparams, tnew[start_index:]), "r-", label='I-Fit')
@@ -824,11 +769,6 @@ else:
 				#c=cyan (Pyro)
 				Ip = abs(Ifit[0]*sin(phasediff))
 				p_params = [Ip, Tfit_down[1], Tfit_down[2]-pi/2, Ifit[3], Ifit[4]]
-
-				#if phasediff >= 0.0:
-				#	p_params = [Ip, Tfit_down[1], Tfit_down[2]-pi/2, Ifit[3], Ifit[4]]
-				#else:
-				#	p_params = [Ip, Tfit_down[1], Tfit_down[2]+pi/2, Ifit[3], Ifit[4]]
 				pyroparams = Parameters()
 				listtoparam(p_params, pyroparams)
 				ax2.plot(tnew[start_index:], sinfunc(pyroparams, tnew[start_index:]), 'c-', label=r'I$_{p}$')
@@ -1775,29 +1715,34 @@ else:
 			ax2.legend(title="currents", loc='lower right')
 			draw()
 			
-			#calculating p
-			# p = I_0 * C / A^2 * F_0
-			
-			I = 0.5 #A
-			U = 4.5 #V
-			nu = 0.12 #efficiency
-			
-			area = get_area()
-			F_0 = ((U*I*nu) / area[0])
+			#Calculation of p with original Chynoweth approach - not working!
+			#I = 0.5 #A
+			#U = 4.5 #V
+			#nu = 1 #efficiency
+			#area = get_area()
+			#area = [(pi/4*0.01**2)]
+			#F_0 = ((U*I*nu) / area[0])
 			#F_01 = ((U*I) / area[0])
-			c = (0.15*4.1868)/1e-3 #converted from crystec data sheet for LN
-			rho = 4.65 * (1e-3/1e-6) #*1000
-			d = 1e-3 #1mm
-			V = area[0] * d
-			m = rho * V
-			C = c * m
-			
+			#c = (0.15*4.1868)/1e-3 #converted from crystec data sheet for LN
+			#rho = 4.65 * (1e-3/1e-6) #*1000
+			#d = 1e-3 #1mm
+			#V = area[0] * d
+			#m = rho * V
+			#C = c * m
 			#Ansatz F0 für tau auszurechen --> auch nicht zufriedenstellend :(
-			F_0 = m * C * TParams['offs'].value / (IParams['decay'].value * area[0])
+			#F_0 = m * C * TParams['offs'].value / (IParams['decay'].value * area[0])
+			#p = (IParams['A'].value * C)/(area[0]**2 * F_0)
+			#print (p*1e6)
 			
-			p = (IParams['A'].value * C)/(area[0]**2 * F_0)
+			#Calculation of p with modified Chynoweth Approach (by measuring T and using basic pyroelectric equation)
+			#only valid, if tau_th = tau_el. in fit!
+			A = get_area()[0]
+			p = IParams['A'].value * TParams['decay'].value/(A*TParams['A'].value)
 			
 			print (p*1e6)
+			
+			#What is now F0 of the setup?
+			#Can someone calc C or other Parameters with original Chynoweth Approach? --> F0 waere zunaechst der interessantere Parameter
 			
 			
 			#saving figure----------------------------------------------------------------------------------------------------
