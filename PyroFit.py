@@ -18,6 +18,7 @@
 # Import modules------------------------------------------------------------------------------------------------------------
 from pylab import *
 from scipy.interpolate import interp1d, interp2d
+from scipy.signal import argrelmax, argrelmin
 import glob
 import sys
 import os
@@ -220,7 +221,7 @@ def interpolate_data(temp_array, curr_array, steps, temp_filter_flag):
 			current array [ndarray]
 			steps [float]
 			temp_filter_flag [bool]
-			output: interpolated arrays
+	output: interpolated arrays
 	"""
 	boundries = set_interpolation_range(curr_array[:,0],temp_array[:,0])	#find interpolation range
 	tnew = arange(min(curr_array[:,0]),max(temp_array[:,0]),steps)			#arange new time axis in 0.5s steps
@@ -1655,65 +1656,116 @@ else:
 			print "--------------------------------"
 			print "...plotting"
 			print "-----------"
+			
+			#-----------------------------------------------------------------------------------------------
+			#Interpolation of Data to get one time grid
+			interpol_step_size = 0.5 #s
+			tinterpol, Tinterpol, Iinterpol = interpolate_data(Tdata,Idata,interpol_step_size,True)
+			
+			#-----------------------------------------------------------------------------------------------
+			#give me some important values 
+			f=0.005	# has to be replaced later with reading from fileheader (measurement_info)
 
-			#plot of raw data-------------------------------------------------------------------
+			#get number of indices in one period
+			period_idx_size = int((1/f)*(1/interpol_step_size))
+			#for the first max.
+			period_idx= list(argrelmax(Tinterpol)[0])
+			
+			#how many periods are plotted
+			perioden = (int(round((max(tinterpol)/(1/f))))-1)
+			
+			#start and end index for plotting and so on
+			start_index = period_idx[0]
+			end_index = start_index + (perioden * period_idx_size)
+			
+			#mean values after start_index
+			T_mean = mean(Tinterpol[start_index:end_index])
+			I_mean = mean(Iinterpol[start_index:end_index])
+			
+			#plot of raw data------------------------------------------------------------------------------
 			#note: start index of plot is here 5 --> can be automated ;)
 			bild = figure("Power-SquareWave Plot")
 			ax1 = subplot(111)
 			ax2 = ax1.twinx()
 			
+			#temperature
 			ax1.set_xlabel("time [s]",size=label_size)
 			ax1.set_ylabel("temperature [K]",color='b',size=label_size)
 			ax1.grid(b=None, which='major', axis='both', color='grey', linewidth=1)
 			ax1.tick_params(axis='y', colors='blue')
-			#ax1.set_ylim(305,315)
-			l1 = ax1.plot(Tdata[5:,0],Tdata[5:,1], 'bo', label="T meas. (Down)")
+			#ax1.plot(Tdata[5:,0],Tdata[5:,1], 'b-', label="T meas. (Down)")
+			l1 = ax1.plot(tinterpol[start_index:end_index],Tinterpol[start_index:end_index], 'bo', label="T interpol. (Down)")
 			ax1.autoscale(enable=True, axis='y', tight=None)
 			ax1.legend(title="temperatures", loc='upper left')
 
-			#Plot Current
+			#current
 			ax2.set_ylabel("current [A]",color='r',size=label_size)
 			ax2.tick_params(axis='y', colors='red')
 			ax2.autoscale(enable=True, axis='y', tight=None)
-			ax2.plot(Idata[5:,0],Idata[5:,1], 'r-', label="I meas.")
+			#ax2.plot(Idata[5:,0],Idata[5:,1], 'r-', label="I meas.")
+			l2 = ax2.plot(tinterpol[start_index:end_index],Iinterpol[start_index:end_index], 'ro', label="I interpol.")
 			ax2.legend(title="currents", loc='lower right')
 			
 			show()
+
+			#---------------------------------------------------------------------------------------------
+			#modified Chynoweth fitting!
 			
-			# select fiting range for exp. decay fit
-			print "give me fit range ..."
-			inputs = ginput(2)
-			t_idx_min = abs(Idata[:,0]-inputs[0][0]).argmin()
-			t_idx_max = abs(Idata[:,0]-inputs[1][0]).argmin()
+			#Fit Dicts for Temp and Current (lmfit package)
+			TParams = Parameters()
+			TParams.add('decay', value=20)
+			TParams.add('offs', value=300, min=0)
+			TParams.add('A',value=320)
 			
-			#perform fit
 			IParams = Parameters()
-			IParams.add('decay', value=20, max=100)
+			IParams.add('decay', value=TParams['decay'].value,vary=False)
 			IParams.add('offs', value=1e-12, min=1e-14)
 			IParams.add('A',value=1e-7)
-			IResults = minimize(expdecay, IParams, args=(Idata[t_idx_min:t_idx_max,0],Idata[t_idx_min:t_idx_max,1]), method="leastsq")
 			
-			ax2.plot(Idata[t_idx_min:t_idx_max,0], expdecay(IParams, Idata[t_idx_min:t_idx_max,0]), 'm-', label=r'I$_{Chynoweth}$')
+			#
+			A = get_area()[0]
+			pyro_coeffs = []
 			
-			t_idx_min = abs(Tdata[:,0]-inputs[0][0]).argmin()
-			t_idx_max = abs(Tdata[:,0]-inputs[1][0]).argmin()
-
-			TParams = Parameters()
-			TParams.add('decay', value=IParams['decay'].value)
-			TParams.add('offs', value=300, min=0)
-			TParams.add('A',value=100)
-			TResults = minimize(expdecay, TParams, args=(Tdata[t_idx_min:t_idx_max,0],Tdata[t_idx_min:t_idx_max,1]), method="leastsq")
+			#two fits in very period!
+			for i in range(perioden*2):
+				#indieces for full half period
+				start = start_index + i*(period_idx_size/2)
+				end = start_index + (i+1)*(period_idx_size/2)
 			
+				TResults = minimize(expdecay, TParams, args=(tinterpol[start:end],Tinterpol[start:end]), method="leastsq")
+				ax1.plot(tinterpol[start:end], expdecay(TParams, tinterpol[start:end]), 'b-', label=r'T$_{exp}$')
+						
+				#indices for window in half period
+				pre = 0.15 #ignoring ...% in front of window
+				post = 0.50 #ignoring ...% after window
+				
+				window = 1 - pre - post
+				
+				pre_size = int(pre*period_idx_size/2)
+				post_size = int(post*period_idx_size/2)
+				window_size = int(window*period_idx_size/2)
+				
+				start = start_index + i*(period_idx_size/2) + (pre_size)
+				end = start_index + (i+1)*(period_idx_size/2) - (post_size)
 			
-			#print fit
-			consoleprint_fit(IParams, "Current")
-			consoleprint_fit(TParams,"Temperature")
+				IResults = minimize(expdecay, IParams, args=(tinterpol[start:end],Iinterpol[start:end]), method="leastsq")
+				ax2.plot(tinterpol[start:end], expdecay(IParams, tinterpol[start:end]), 'mo-', label=r'I$_{Chynoweth}$')
+				
+				draw()
+			
+				#consoleprint_fit(IParams, "Current %d"%(i+1))
+				p = IParams['A'].value * TParams['decay'].value/(A*TParams['A'].value)
+				pyro_coeffs.append(p*1e6)
+			
+			print pyro_coeffs
+			#print fit in console
+			#consoleprint_fit(IParams, "Current")
+			#consoleprint_fit(TParams,"Temperature")
 			
 			#draw results
-			ax1.plot(Tdata[t_idx_min:t_idx_max,0], expdecay(TParams, Tdata[t_idx_min:t_idx_max,0]), 'b-', label=r'T$_{exp}$')
 
-			ax2.legend(title="currents", loc='lower right')
-			draw()
+
+			#ax2.legend(title="currents", loc='lower right')
 			
 			#Calculation of p with original Chynoweth approach - not working!
 			#I = 0.5 #A
@@ -1736,10 +1788,10 @@ else:
 			
 			#Calculation of p with modified Chynoweth Approach (by measuring T and using basic pyroelectric equation)
 			#only valid, if tau_th = tau_el. in fit!
-			A = get_area()[0]
-			p = IParams['A'].value * TParams['decay'].value/(A*TParams['A'].value)
+			#A = get_area()[0]
+			#p = IParams['A'].value * TParams['decay'].value/(A*TParams['A'].value)
 			
-			print (p*1e6)
+			#print (p*1e6)
 			
 			#What is now F0 of the setup?
 			#Can someone calc C or other Parameters with original Chynoweth Approach? --> F0 waere zunaechst der interessantere Parameter
