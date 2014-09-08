@@ -194,7 +194,8 @@ def extract_HV_params(filename):
 		datei = open(filename, 'r')
 		HVmax = datei.readline().strip().split(" ")[4]
 		zeile = datei.readline()
-		if zeile!=' ' and zeile!='\r\n':
+		if zeile!='' and zeile!='\r\n' and zeile !='\n':
+                        print 'yes'
 			HVcomp = zeile.strip().split(" ")[5]
 			datei.close()
 			return [float(HVmax), float(HVcomp)]
