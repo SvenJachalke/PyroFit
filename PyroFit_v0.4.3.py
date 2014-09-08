@@ -148,8 +148,12 @@ def extract_T_stimulation_params(filename):
 		except:
 			pass
 		try:
-			amp = datei.readline().strip().split(" ")[1]
-			T_stimulation_params_dict.update({"amp":float(amp)})
+			if T_stimulation_params_dict["waveform"]=="PWRSquareWave":
+				I = datei.readline().strip().split(" ")[1]
+				T_stimulation_params_dict.update({"I":float(I)})
+			else:
+				amp = datei.readline().strip().split(" ")[1]
+				T_stimulation_params_dict.update({"amp":float(amp)})
 		except:
 			pass
 		try:
@@ -158,8 +162,12 @@ def extract_T_stimulation_params(filename):
 		except:
 			pass
 		try:
-			offs = datei.readline().strip().split(" ")[1]
-			T_stimulation_params_dict.update({"offs":float(offs)})
+			if T_stimulation_params_dict["waveform"]=="PWRSquareWave":
+				V = datei.readline().strip().split(" ")[1]
+				T_stimulation_params_dict.update({"V":float(V)})
+			else:
+				offs = datei.readline().strip().split(" ")[1]
+				T_stimulation_params_dict.update({"offs":float(offs)})
 		except:
 			pass
 		try:
@@ -226,7 +234,7 @@ def interpolate_data(temp_array, curr_array, steps, temp_filter_flag):
 	output: interpolated arrays
 	"""
 	boundries = set_interpolation_range(curr_array[:,0],temp_array[:,0])	#find interpolation range
-	tnew = arange(min(curr_array[:,0]),max(temp_array[:,0]),steps)			#arange new time axis in 0.5s steps
+	tnew = arange(boundries[0], boundries[1], steps)			#arange new time axis in 0.5s steps
 
 	#Temperature
 	Tinterpol_down = interp1d(temp_array[:,0],temp_array[:,1])				#interpolation of lower temperature
@@ -531,11 +539,8 @@ for filename in filelist:
 		HV_status, T_profile = extract_measurementmode(filename)
 		measurement_info = extract_T_stimulation_params(filename)
 		samplename = extract_samplename(filename)
-		if measurement_info['waveform'] == 'PWRSquareWave':
-			Tdata = loadtxt(filename, skiprows=10)
-		else:
-		#---> bei PWRSquareWave gibt es Header BUG!!!!
-			Tdata = loadtxt(filename, skiprows=9)
+		
+		Tdata = loadtxt(filename, skiprows=10)
 		
 		#previous filter of Tdata
 		erase_bools_T = (Tdata[:,1]!=9.9e39)	#overflow on down temperature
@@ -1664,15 +1669,15 @@ else:
 			
 			#-----------------------------------------------------------------------------------------------
 			#Interpolation of Data to get one time grid
-			interpol_step_size = 0.5 #s
-			tinterpol, Tinterpol, Iinterpol = interpolate_data(Tdata,Idata,interpol_step_size,True)
+			tinterpol, Tinterpol, Iinterpol = interpolate_data(Tdata,Idata,interpolation_step,True)
 			
 			#-----------------------------------------------------------------------------------------------
 			#give me some important values 
-			f=0.005	# has to be replaced later with reading from fileheader (measurement_info)
-
+			#f=0.005	# has to be replaced later with reading from fileheader (measurement_info)
+			f = measurement_info["freq"]
+			
 			#get number of indices in one period
-			period_idx_size = int((1/f)*(1/interpol_step_size))
+			period_idx_size = int((1/f)*(1/interpolation_step))
 			#for the first max.
 			period_idx= list(argrelmax(Tinterpol)[0])
 			
