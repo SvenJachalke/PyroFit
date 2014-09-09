@@ -15,7 +15,7 @@
 # - pylab (matplotlib, numpy, scipy), etc.
 # - lmfit (http://newville.github.io/lmfit-py/)
 #---------------------------------------------------------------------------------------------------------------------------
-
+ 
 # Import modules------------------------------------------------------------------------------------------------------------
 from pylab import *
 from scipy.interpolate import interp1d, interp2d
@@ -266,7 +266,7 @@ def consoleprint_fit(fit, name):
 	"""
 	Writes fit value in shell window
 	Input:	fit [dict] - Parameters-dict from lmfit
-			name [str] - what was fitted= (Temp, Curr, ...)
+	name [str] - what was fitted= (Temp, Curr, ...)
 	"""
 
 	print("---------------")
@@ -1685,7 +1685,7 @@ else:
 			perioden = (int(round((max(tinterpol)/(1/f))))-1)
 			
 			#start and end index for plotting and so on
-			start_index = period_idx[1]+10
+			start_index = period_idx[1]
 			end_index = start_index + (perioden * period_idx_size)
 			
 			#mean values after start_index
@@ -1723,16 +1723,17 @@ else:
 			
 			#Fit Dicts for Temp and Current (lmfit package)
 			TParams = Parameters()
+			TParams.add('A',value=300)
 			TParams.add('decay', value=20)
-			TParams.add('offs', value=300, min=0)
-			TParams.add('A',value=320)
+			TParams.add('offs', value=300, max=320)
 			
 			IParams = Parameters()
+			IParams.add('A',value=1e-7)
 			IParams.add('decay', value=TParams['decay'].value,vary=False)
 			IParams.add('offs', value=1e-12, min=1e-14)
-			IParams.add('A',value=1e-7)
+
 			
-			#
+			#getting area
 			A = get_area()[0]
 			pyro_coeffs = []
 			
@@ -1742,20 +1743,11 @@ else:
 				start = start_index + i*(period_idx_size/2)
 				end = start_index + (i+1)*(period_idx_size/2)
 			
-				#getting tau of Temperature decay
+				# getting tau of Temperature decay
 				TResults = minimize(expdecay, TParams, args=(tinterpol[start:end],Tinterpol[start:end]), method="leastsq")
 				ax1.plot(tinterpol[start:end], expdecay(TParams, tinterpol[start:end]), 'b-', label=r'T$_{exp}$')
-					
-
-				#window for T and current fit
-				#wating 1x tau, fit for 1-2x tau!
 				
-				#tau = TParams['decay'].value
-				
-				#pre_size = 
-				
-				consoleprint_fit(TParams,'Temperature')
-				
+				consoleprint_fit(TParams,'Temperature - Period '+str(i+1))
 				
 				#indices for window in half period
 				pre = 0.15 #ignoring ...% in front of window
@@ -1769,38 +1761,29 @@ else:
 				
 				start = start_index + i*(period_idx_size/2) + (pre_size)
 				end = start_index + (i+1)*(period_idx_size/2) - (post_size)
-			
-				IResults = minimize(expdecay, IParams, args=(tinterpol[start:end],Iinterpol[start:end]), method="leastsq")
-				ax2.plot(tinterpol[start:end], expdecay(IParams, tinterpol[start:end]), 'mo-', label=r'I$_{Chynoweth}$')
 				
-				consoleprint_fit(IParams,'Current')
+				IParams['decay'].value = TParams['decay'].value
+				IResults = minimize(expdecay, IParams, args=(tinterpol[start:end],Iinterpol[start:end]), method="leastsq")
+				ax2.plot(tinterpol[start:end], expdecay(IParams, tinterpol[start:end]), 'co-', label=r'I$_{Chynoweth}$')
+				
+				consoleprint_fit(IParams,'Current - Period '+str(i+1))
 				
 				draw()
 			
 				#consoleprint_fit(IParams, "Current %d"%(i+1))
 				p = IParams['A'].value * TParams['decay'].value/(A*TParams['A'].value)
-				pyro_coeffs.append(p*1e6)
-				
-				#Reset of Fit Parameters
-				
-				# tau = TParams['decay'].value
-				
-				# TParams.add('decay', value=tau,vary=False)
-				# TParams.add('offs', value=300, min=0)
-				# TParams.add('A',value=1000)
-				
-				# IParams.add('decay', value=tau,vary=False)
-				# IParams.add('offs', value=1e-12, min=1e-14)
-				# IParams.add('A',value=1e-7)
+				pyro_coeffs.append(p*1e6)		
 			
+			print "----------------------------"
+			print "Results"
+			print "----------------------------"
+			print "pyroelectric coefficients:"
 			print pyro_coeffs
-			#print fit in console
-			#consoleprint_fit(IParams, "Current")
-			#consoleprint_fit(TParams,"Temperature")
+			print "mean pyroelectric coefficient:", mean(p)*1e6
 			
 			#draw results
 
-
+			#ax1.legend(title="temperatures", loc='upper left')
 			#ax2.legend(title="currents", loc='lower right')
 			
 			#Calculation of p with original Chynoweth approach - not working!
