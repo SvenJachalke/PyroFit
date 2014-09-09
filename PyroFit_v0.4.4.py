@@ -1685,7 +1685,7 @@ else:
 			perioden = (int(round((max(tinterpol)/(1/f))))-1)
 			
 			#start and end index for plotting and so on
-			start_index = period_idx[0]
+			start_index = period_idx[1]+10
 			end_index = start_index + (perioden * period_idx_size)
 			
 			#mean values after start_index
@@ -1742,9 +1742,21 @@ else:
 				start = start_index + i*(period_idx_size/2)
 				end = start_index + (i+1)*(period_idx_size/2)
 			
+				#getting tau of Temperature decay
 				TResults = minimize(expdecay, TParams, args=(tinterpol[start:end],Tinterpol[start:end]), method="leastsq")
 				ax1.plot(tinterpol[start:end], expdecay(TParams, tinterpol[start:end]), 'b-', label=r'T$_{exp}$')
-						
+					
+
+				#window for T and current fit
+				#wating 1x tau, fit for 1-2x tau!
+				
+				#tau = TParams['decay'].value
+				
+				#pre_size = 
+				
+				consoleprint_fit(TParams,'Temperature')
+				
+				
 				#indices for window in half period
 				pre = 0.15 #ignoring ...% in front of window
 				post = 0.50 #ignoring ...% after window
@@ -1761,11 +1773,25 @@ else:
 				IResults = minimize(expdecay, IParams, args=(tinterpol[start:end],Iinterpol[start:end]), method="leastsq")
 				ax2.plot(tinterpol[start:end], expdecay(IParams, tinterpol[start:end]), 'mo-', label=r'I$_{Chynoweth}$')
 				
+				consoleprint_fit(IParams,'Current')
+				
 				draw()
 			
 				#consoleprint_fit(IParams, "Current %d"%(i+1))
 				p = IParams['A'].value * TParams['decay'].value/(A*TParams['A'].value)
 				pyro_coeffs.append(p*1e6)
+				
+				#Reset of Fit Parameters
+				
+				# tau = TParams['decay'].value
+				
+				# TParams.add('decay', value=tau,vary=False)
+				# TParams.add('offs', value=300, min=0)
+				# TParams.add('A',value=1000)
+				
+				# IParams.add('decay', value=tau,vary=False)
+				# IParams.add('offs', value=1e-12, min=1e-14)
+				# IParams.add('A',value=1e-7)
 			
 			print pyro_coeffs
 			#print fit in console
