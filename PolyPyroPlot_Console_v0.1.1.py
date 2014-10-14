@@ -70,6 +70,7 @@ if len(sinewavefolders) == len(labellist):
 		print "1 - delete line(s)"
 		print "2 - add line(s)"
 		print "3 - rename line label(s)"
+		print "4 - save figure"
 		print "0 - exit"
 		top_menu_nr = raw_input()
 
@@ -135,6 +136,12 @@ if len(sinewavefolders) == len(labellist):
 			except KeyError:
 				print "invalid number!"
 
+		elif top_menu_nr == "4":
+			figure_name = raw_input("Enter figure name: ")
+			if figure_name == "":
+				figure_name = "p(T)-Zsf"
+			bild.savefig(figure_name+".png", dpi=300, transparent=False)
+			print "... figure saved"
 		# exit
 		else:
 			print "Bye!"
