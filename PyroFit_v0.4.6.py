@@ -857,6 +857,9 @@ else:
 			input = raw_input("fit [y/n]?")
 			if input == "y":
 
+				#area for pyroel. coefficent
+				area, area_error = get_area()
+				
 				#important calculations for further fit;)--------------------------------------------------------------
 				#check when ramp runs into T_Limit_H
 				maxT_ind = Tnew_down>(measurement_info['T_Limit_H']-1)
@@ -981,14 +984,12 @@ else:
 					Ifit[i-1,2] = PhaseRangeCheck(Ifit[i-1,2])
 
 					#calculate phase difference
-					phasediff = Tfit_down[2]-Ifit[i-1,2]
-					if phasediff < 0.0:
-						phasediff = phasediff+2*pi
-					if phasediff > 2*pi:
-						phasefiff = phasediff-2*pi
+					phasediff = PhaseRangeCheck(Tfit_down[2]-Ifit[i-1,2])
 
-					#NonPyroStrom
+					#NonPyroStrom---------------------------------------------------------------------------
 					#m=magenta (TSC-Strom)
+					
+					#Plot
 					Inp = abs(Ifit[i-1,0]*cos(phasediff))
 					nonpyroparams = Parameters()
 					nonpyroparams.add('amp', value=Inp)
@@ -998,8 +999,29 @@ else:
 					nonpyroparams.add('slope', value=Ifit[i-1,4])
 					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]), 'm-')
 
-					#Pyrostrom
+					#Pyrostrom + Koeff.---------------------------------------------------------------------
 					#c=cyan (Pyrostrom)
+					
+					#Calc p
+					p_Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
+					p_SG = ((Ifit[i-1,0]*sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1])))		# p (Sharp-Garn)
+					p_BR = (abs(Ifit[i-1,5])/(area*Tfit_down[4]))
+					perror = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)
+					p_phasediff = phasediff * 180/pi							# Phasediff.
+					p_p_TSC_ratio= abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))		# ratio Pyro/TSC
+					p_meanI = Ifit[i-1,5]									# mean I in Interval
+					p_redChi = Iresults[i-1].redchi								# red Chi in Interval
+
+					p_temp = [p_Temp, p_SG, p_BR, p_phasediff, p_p_TSC_ratio, p_meanI, p_redChi]
+					if i==1:
+						p = array([p_temp])
+						p_error = array([perror])
+					else:
+						p = append(p, [array(p_temp)], axis=0)
+						p_error = append(p_error,perror)
+					
+					
+					#Plot
 					Ip = abs(Ifit[i-1,0]*sin(phasediff))
 					pyroparams = Parameters()
 					pyroparams.add('amp', value=Ip)
@@ -1012,60 +1034,18 @@ else:
 					pyroparams.add('slope', value=Ifit[i-1,4])
 					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), 'c-')
 
-				#Legend for Current Plots
-				leg1 = ax1.legend(title="temperatures",loc='upper left')
-				I_meas_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='o',color='r')
-				I_fit_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='r')
-				I_TSC_leg  = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='m')
-				I_pyro_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='c')
-				leg2 = ax2.legend((I_meas_leg,I_fit_leg,I_TSC_leg,I_pyro_leg),(r"I meas.",r"I-Fit", r"I$_{TSC}$", r"I$_{p}$"),loc='lower right',title="currents")
-				ax2.add_artist(leg1)	#bring legend to forground (ax2 is last layer)
-				ax2.add_artist(leg2)	#add current legend to ax2
-				draw()
+					#write log
+					log.write("%e\t%e\t%f\t%f\t%f\t%e\t%e\t%e\t%e\n"%(Ifit[i-1,0],Ierror[i-1,0],Ifit[i-1,1],(Ifit[i-1,2]*180/pi),(Ierror[i-1,1]*180/pi),Ifit[i-1,3],Ierror[i-1,2],Ifit[i-1,4],Ierror[i-1,3]))
 
+				draw()
+				log.close()
 				print "\nCurrent ... done!"
 
-				#file output
-				for i in range(1,len(Ifit)):
-					log.write("%e\t%e\t%f\t%f\t%f\t%e\t%e\t%e\t%e\n"%(Ifit[i-1,0],Ierror[i-1,0],Ifit[i-1,1],(Ifit[i-1,2]*180/pi),(Ierror[i-1,1]*180/pi),Ifit[i-1,3],Ierror[i-1,2],Ifit[i-1,4],Ierror[i-1,3]))
-				log.close()
-
-				#Calculating p ---------------------------------------------------------------------------------------
-				print "-------------"
-				print "p-Calculation"
-				print "-------------"
-
-				#for length of p array
-				globale_intervalle = len(Ifit)
-
-				#area for pyroel. coefficent
-				area, area_error = get_area()
-
-				#array initialisation for pyro koeff
-				p = zeros((globale_intervalle,7))
-				perror = zeros((globale_intervalle,1))
-
-				for i in range(1,globale_intervalle):
-					phasediff = Tfit_down[2]-Ifit[i-1,2]
-					if phasediff < 0.0:
-						phasediff = phasediff+2*pi
-					if phasediff > 2*pi:
-						phasediff = phasediff-2*pi
-
-					p[i-1,0] = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
-					p[i-1,1] = ((Ifit[i-1,0]*sin(phasediff))/(area*Tfit_down[0]*2*pi*Tfit_down[1]))							# p (Sharp-Garn)
-					p[i-1,2] = (abs(Ifit[i-1,5])/(area*Tfit_down[4]))														# p (Glass-Lang-Steckel)
-					p[i-1,3] = phasediff * 180/pi																			# Phasediff.
-					p[i-1,4] = abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))								# ratio Pyro/TSC
-					p[i-1,5] = Ifit[i-1,5]																					# mean I in Interval
-					p[i-5,6] = Iresults[i-1].redchi																			# red Chi in Interval
-
-					perror[i-1,0] = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)
-
-				#Plotting p(T)
+				#Plotting p(T)-----------------------------------------------------------------------------------------------------------
 				bild2=figure(date+"_"+samplename+'_Pyro')
 				Tticks = arange(270,430,10)
 
+				#p(T)--------------------------------------------------------------
 				ax3=subplot(311)
 				ax3.set_autoscale_on(True)
 				ax3.set_xlim(270,430)
@@ -1074,10 +1054,11 @@ else:
 				ax3.set_ylabel(r"p [$\mu$C/Km$^2$]",color='b',size=label_size)
 				xticks(Tticks)
 				ax3.grid(b=None, which='major', axis='both', color='grey')
-				ax3.errorbar(p[:,0],(p[:,1]*1e6), yerr=perror[:,0]*1e6, fmt="b.", elinewidth=None, capsize=3, label='p (SG)')
-				ax3.plot(p[:,0],(p[:,2]*1e6), "r.", label='p (GLS)')
+				ax3.errorbar(p[:,0],(p[:,1]*1e6), yerr=p_error[:]*1e6, fmt="b.", elinewidth=None, capsize=3, label='p (SG)')				
+				#ax3.plot(p[:,0],(p[:,2]*1e6), "r.", label='p (BR)')
 				ax3.legend(loc=3)
 
+				#p/TSC ration---------------------------------------------------------
 				ax5=subplot(312,sharex=ax3)
 				ax5.set_autoscale_on(True)
 				ax5.set_xlim(270,420)
@@ -1087,6 +1068,8 @@ else:
 				ax5.set_ylabel(r"I$_p$/I$_{TSC}$",color='g',size=label_size)
 				ax5.semilogy(p[:,0], p[:,4], "g.", label=r"I$_p$/I$_{TSC}$")
 
+
+				#redChi---------------------------------------------------------------
 				ax6=subplot(313,sharex=ax3)
 				ax6.set_autoscale_on(True)
 				ax6.set_xlim(270,420)
@@ -1158,12 +1141,12 @@ else:
 				try:
 					for i in range(0,len(p)-1):
 						if i>0 and i<len(P):
-							log.write("%f\t%e\t%e\t%e\t%e\t%f\t%f\n" % (p[i,0],p[i,1],perror[i],p[i,4],p[i,2],p[i,3],P[i,1]))
+							log.write("%f\t%e\t%e\t%e\t%e\t%f\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3],P[i,1]))
 						else:
-							log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],perror[i],p[i,4],p[i,2],p[i,3]))
+							log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3]))
 				except NameError:
 					for i in range(0,len(p)-1):
-						log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],perror[i],p[i,4],p[i,2],p[i,3]))
+						log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3]))
 				log.close()
 
 			else:
