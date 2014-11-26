@@ -1468,10 +1468,30 @@ else:
 				ax6.semilogy(p[:turning_p_index,0], p[:turning_p_index,6], "c.", label=r"red. $X^2$ - heat")
 				ax6.semilogy(p[turning_p_index:,0], p[turning_p_index:,6], "cv", label=r"red. $X^2$ - cool")
 
+				print "--------------------------------"
+				print "...writing log files"
+				log_name2 = date+"_"+samplename+"_SineWave+LinRamp_p-Fits.txt"
+				log = open(log_name2, "w+")
+				log.write("#Berechnete Daten\n")
+				log.write("#----------------\n")
+				log.write("#Flaeche:\t%e m2\n" % area)
+				log.write("#----------------\n")
+				log.write("#Temp\tPyro-Koeff(S-G)\t(Error)\tPyro-Koeff(L-S)\tPhasediff\tPolarization\n")
+				log.write("#[K]\t[C/K*m2]\tC/K*m2]\t[C/m2]\n")
+				try:
+					for i in range(0,len(p)-1):
+						if i>0 and i<len(P):
+							log.write("%f\t%e\t%e\t%e\t%e\t%f\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3],P[i,1]))
+						else:
+							log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3]))
+				except NameError:
+					for i in range(0,len(p)-1):
+						log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3]))
+				log.close()
+			
 			#save figure
 			saving_figure(bild1)
 			saving_figure(bild2, pbild=True)
-		
 		#SquareWave
 		elif measurement_info['waveform'] == "SquareWave":
 			print "Mode:\t\tSquareWave"
