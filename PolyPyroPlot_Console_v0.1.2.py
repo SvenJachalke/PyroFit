@@ -20,7 +20,7 @@ print "-------PolyPyroPlot----------------------------------------"
 foldercontent = os.listdir('.') #'.' gives current relative path
 sinewavefolders = []
 for i in range(len(foldercontent)):
-    if 'SinLinRamp' in foldercontent[i]:
+    if 'SinLinRamp' in foldercontent[i] or 'TriangleHat-SineWave' in foldercontent[i]:
         sinewavefolders.append(foldercontent[i])
 sinewavefolders.sort() #ascending sorting of the folders
 
