@@ -28,7 +28,9 @@ from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
 upper_I_lim = 1e-3                                  #limitation of current in plot and fit (for spikes, ...)
-temp_filter_flag = True                             #plot/fit of second temperature (top PT100)
+temp_filter_flag = True                             #True = no plot/fit of second temperature (top PT100)
+calculate_data_from_fit_flag = True			#True = saving fit as data points to txt file for I_pyro and I_TSC
+PS_flag = False										#flag if PS should be calculated from p(T)
 start_index = 100                                  #start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                              #for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
@@ -998,6 +1000,14 @@ else:
 					nonpyroparams.add('offs', value=Ifit[i-1,3])
 					nonpyroparams.add('slope', value=Ifit[i-1,4])
 					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]), 'm-')
+					
+					#Calculating Data from Fit - TSC
+					if calculate_data_from_fit_flag == True:
+						TSC = (array([tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende])])).T		#transpose!
+						if i==1:
+							I_TSC = TSC
+						else:
+							I_TSC = append(I_TSC, TSC, axis=0)
 
 					#Pyrostrom + Koeff.---------------------------------------------------------------------
 					#c=cyan (Pyrostrom)
@@ -1033,6 +1043,14 @@ else:
 					pyroparams.add('offs', value=Ifit[i-1,3])
 					pyroparams.add('slope', value=Ifit[i-1,4])
 					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), 'c-')
+					
+					#Calculating Data from Fit - Pyro
+					if calculate_data_from_fit_flag == True:
+						pyro = (array([tnew[start:ende], sinfunc(pyroparams, tnew[start:ende])])).T		#transpose!
+						if i==1:
+							I_pyro = pyro
+						else:
+							I_pyro = append(I_pyro, pyro, axis=0)
 
 					#write log
 					log.write("%e\t%e\t%f\t%f\t%f\t%e\t%e\t%e\t%e\n"%(Ifit[i-1,0],Ierror[i-1,0],Ifit[i-1,1],(Ifit[i-1,2]*180/pi),(Ierror[i-1,1]*180/pi),Ifit[i-1,3],Ierror[i-1,2],Ifit[i-1,4],Ierror[i-1,3]))
@@ -1085,6 +1103,7 @@ else:
 				print "-->P-calculation"
 				PS_plot = raw_input("    T_C? (y/n): ")
 				if PS_plot == "y":
+					PS_flag = True
 					print "    ... select T_C from the p(T) or I_TSC/I_p plot!"
 					#---- Berechnen der Polarisation anhand von T_C (dort ist P = 0)
 					#Finden von TC
@@ -1128,26 +1147,19 @@ else:
 				saving_figure(bild1)
 				saving_figure(bild2, pbild=True)
 
+				#writing log files
 				print "--------------------------------"
-				print "...writing log files"
-				log_name2 = date+"_"+samplename+"_SineWave+LinRamp_p-Fits.txt"
-				log = open(log_name2, "w+")
-				log.write("#Berechnete Daten\n")
-				log.write("#----------------\n")
-				log.write("#Flaeche:\t%e m2\n" % area)
-				log.write("#----------------\n")
-				log.write("#Temp\tPyro-Koeff(S-G)\t(Error)\tPyro-Koeff(L-S)\tPhasediff\tPolarization\n")
-				log.write("#[K]\t[C/K*m2]\tC/K*m2]\t[C/m2]\n")
-				try:
-					for i in range(0,len(p)-1):
-						if i>0 and i<len(P):
-							log.write("%f\t%e\t%e\t%e\t%e\t%f\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3],P[i,1]))
-						else:
-							log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3]))
-				except NameError:
-					for i in range(0,len(p)-1):
-						log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3]))
-				log.close()
+				print "...writing log files"				
+				if PS_flag == True:
+					header_string = "Temp [K],\t\t\tp_SG [µC/Km2],\t\t\tp_BR [µC/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\tPolarization [µC/m2]"
+					# here has come the savetxt command for PS included ...vstack()!
+				else:
+					header_string = "Temp [K],\t\t\tp_SG [µC/Km2],\t\t\tp_BR [µC/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi"
+					savetxt(date+"_"+samplename+"_"+"PyroData.txt", p, delimiter=",\t", header=header_string)
+				
+				if calculate_data_from_fit_flag == True:
+					header_string = "time [s]\t\t\tI_TSC [A]\t\t\tI_pyro [A]"
+					savetxt(date+"_"+samplename+"_"+"DataFromFit.txt", vstack([I_TSC[:,0], I_TSC[:,1], I_pyro[:,1]]).T, delimiter=",\t", header=header_string)
 
 			else:
 				saving_figure(bild1)
