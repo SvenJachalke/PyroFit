@@ -48,6 +48,15 @@ for i in range(len(sinewavefolders)):
 				labellist.append(sinewavefolders[i])
 			except NameError:
 				pass
+		elif 'PyroData.txt' in filelist[f]:
+			p = pl.loadtxt(filelist[f],skiprows = 1)
+			coloritem = pl.mod(i,len(colorlist))
+			line = pl.plot(p[::skip,1],p[::skip,2]*1e6,label=sinewavefolders[i],color=colorlist[coloritem])
+			try:
+				linedict.update({i+1:line})
+				labellist.append(sinewavefolders[i])
+			except NameError:
+				pass
 
 	os.chdir('..')
 
