@@ -1228,9 +1228,9 @@ else:
 			print "Mode:\t\tTriangleHat"
 			print "Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['freq'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600)
 
-			print "--------------------------------"
+			print line
 			print "...plotting"
-			print "-----------"
+			print line
 			
 			if temp_filter_flag == True:
 				tnew, Tnew_down, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
@@ -1244,7 +1244,7 @@ else:
 			show()
 
 			#save figure
-			print "--------------------------------"
+			print line
 			print "...saving figure"
 			saving_figure(bild1)
 
@@ -1253,9 +1253,9 @@ else:
 			print "Mode:\t\tSineWave+TriHat"
 			print "Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h\n\t\tA=%.1fK\n\t\tf=%.1fmHz" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['offs'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600, measurement_info['amp'], measurement_info['freq']*1000)
 
-			print "--------------------------------"
+			print line
 			print "...plotting"
-			print "-----------"
+			print line
 
 			if temp_filter_flag == True:
 				tnew, Tnew_down, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
@@ -1271,28 +1271,29 @@ else:
 			input = raw_input("fit (y/n)?")
 			if input == "y":
 
-				print "--------------------------------"
-				print "...fitting"
-				print "----------"
-
 				#area for pyroel. coefficent
 				area, area_error = get_area()
+				print("Area: %e m2" % area)
+				
+				print line
+				print "...fitting"
+				print line
 				
 				#prepare output log
-				log = open(date+"_"+samplename+"_"+T_profile+"_T-I-Fits.txt", 'w+')
+				log = open(date+"_"+samplename+"_"+T_profile+"_T-Fits.txt", 'w+')
 
 				#important calculations for further fit;)--------------------------------------------------------------
 				#check when ramp runs into T_Limit_H
 				turning_point_index = argmax(Tnew_down)
 				T_perioden = int(tnew[-1]/(1/measurement_info['freq']))
 				satzlaenge = (len(tnew)-1-start_index)/T_perioden
-  
+				
 				#Temp fit/plot for heating-----------------------------------------------------------------------------
 				Tresult_down_heat, Tparams_down_heat = fit(tnew, Tnew_down,start_index,turning_point_index,1,measurement_info)
+				#correction of phase and amplitudes
+				Tparams_down_heat = amp_phase_correction(Tparams_down_heat)
 				#extract params dict to lists
 				Tfit_down_heat, Terror_down_heat = extract_fit_relerr_params(Tparams_down_heat)
-				#correction of phase < 0 or phase > 360 deg
-				Tfit_down_heat[2] = PhaseRangeCheck(Tfit_down_heat[2])
 				#Fit-Plot
 				ax1.plot(tnew[start_index:turning_point_index], sinfunc(Tparams_down_heat, tnew[start_index:turning_point_index]), 'b-')
 				draw()
@@ -1303,10 +1304,10 @@ else:
 				#for top temperature-------------------
 				if temp_filter_flag == False:
 					Tresult_high_heat, Tparams_high_heat = fit(tnew, Tnew_top, start_index, turning_point_index,1, measurement_info)
+					#correction of phase and amplitude
+					Tparams_high_heat = amp_phase_correction(Tparams_high_heat)
 					#extract params dict to lists
 					Tfit_high_heat, Terror_high_heat = extract_fit_relerr_params(Tparams_high_heat)
-					#correction of phase < 0 or phase > 360 deg
-					Tfit_high_heat[2] = PhaseRangeCheck(Tfit_high_heat[2])
 					#plot of second fit
 					ax1.plot(tnew[start_index:turning_point_index], sinfunc(Tparams_high_heat, tnew[start_index:turning_point_index]), 'g-', label='T-Fit (Top)')
 					draw()
@@ -1318,10 +1319,10 @@ else:
 				
 				#Temp fit/plot for cooling-----------------------------------------------------------------------------
 				Tresult_down_cool, Tparams_down_cool = fit(tnew, Tnew_down,turning_point_index,len(tnew)-1,1,measurement_info, heating=False)
+				#correction of phase and amplitudes
+				Tparams_down_cool = amp_phase_correction(Tparams_down_cool)
 				#extract params dict to lists
 				Tfit_down_cool, Terror_down_cool = extract_fit_relerr_params(Tparams_down_cool)
-				#correction of phase < 0 or phase > 360 deg
-				Tfit_down_cool[2] = PhaseRangeCheck(Tfit_down_cool[2])
 				#Fit-Plot
 				ax1.plot(tnew[turning_point_index:], sinfunc(Tparams_down_cool, tnew[turning_point_index:]), 'b-')
 				draw()
@@ -1331,10 +1332,10 @@ else:
 				fileprint_fit(log,Tparams_down_cool,"Temperature (Down) - Cooling")  
 				if temp_filter_flag == False:
 					Tresult_high_cool, Tparams_high_cool = fit(tnew, Tnew_top, turning_point_index, len(tnew)-1,1, measurement_info)
+					#correction of phase and amplitudes
+					Tparams_high_cool = amp_phase_correction(Tparams_high_cool)
 					#extract params dict to lists
 					Tfit_high_cool, Terror_high_cool = extract_fit_relerr_params(Tparams_high_cool)
-					#correction of phase < 0 or phase > 360 deg
-					Tfit_high_cool[2] = PhaseRangeCheck(Tfit_high_cool[2])
 					#plot of second fit
 					ax1.plot(tnew[turning_point_index:], sinfunc(Tparams_high_cool, tnew[turning_point_index:0]), 'g-', label='T-Fit (Top) - Cooling')
 					draw()
@@ -1343,34 +1344,26 @@ else:
 					#file output
 					fileprint_fit(log,Tparams_high_cool,"Temperature (High) - Cooling")
 
+				log.close()
 				print "Temperature ... done!"
 
 				#Current Fit -------------------------------------------------------------------------------------
 				I_perioden = int(tnew[-1]/(fit_periods/measurement_info['freq']))
 				satzlaenge = len(tnew)/I_perioden
 				
-				#Intialize Fit arrays
-				Ifit = zeros((1,6))
+				Ifit = zeros((1,5))
 				Ierror = zeros((1,5))
-				p = zeros((1,6))
-				perror = zeros((1,1))
 				
-				#Ifit = zeros((I_perioden-1,6))
-				#Ierror = zeros((I_perioden-1,5))
 				Iparams = Parameters()
-				Iparams.add('amp', value=1e-11)#, min=1e-13, max=1e-7)
-				Iparams.add('freq', value=Tfit_down_heat[1], min=1e-5, max=0.1, vary=False)
-				Iparams.add('phase', value=0.1, min=-pi, max=pi)
+				Iparams.add('amp', value=1e-9)
+				Iparams.add('freq', value=Tfit_down_cool[1], min=1e-5, max=0.1, vary=False)
+				Iparams.add('phase', value=1.0)
 				Iparams.add('offs', value=1e-10)
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
 				Iparams_lin.add('a', value=1e-10)
 				Iparams_lin.add('b', value=0.0)
-
-				#initialize file output
-				log.write("#Current-Fit Data\n#----------\n\n")
-				log.write("#Amp [I]\t\tAmp_Error\t\tFreq [Hz]\t\tPhase\t\tPhase_Error\tOffset [A]\tOffset_Error\tSlope [A/s]\tSlope_Error\n")
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -1381,6 +1374,7 @@ else:
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
 					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
 					
+					#Repeat Feature if lin. Fit is better than sine fit
 					Ifit_counter = 1
 					if Iresult_lin.redchi < 2*Iresult_sin.redchi and Ifit_counter < Ifit_counter_limit:
 						
@@ -1388,71 +1382,110 @@ else:
 						Iparams['phase'].value = Tfit_down[2]-pi/2
 						#Iparams['offs'].value = (Ifit_counter**2)*1e-10
 						#Iparams['slope'].value = (Ifit_counter**2)*1e-10
-						Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")	
+						
+						Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+						
 						Ifit_counter =  Ifit_counter + 1
 
 					#print i, Ifit_counter
-					sys.stdout.write("\rFit-Progress: %d of %d intervals; Repeatings: %d" % (i,I_perioden-1,Ifit_counter))
+					sys.stdout.write("\rProgress: %d/%d; %.0f %% Rep.: %d" % (i,I_perioden-1,100*float(i)/float(I_perioden-1),Ifit_counter))
 					sys.stdout.flush()
 					
+					#fit correction (amp/phase)
+					Iparams = amp_phase_correction(Iparams)
 					#plot of sin and line fit
 					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]), 'r-')
 					ax2.plot(tnew[start:ende], linear(Iparams_lin, tnew[start:ende]), 'r--')
-					
+				
 					#extract params dict to lists
 					Ifit_temp, Ierror_temp = extract_fit_relerr_params(Iparams)
-					Ifit_temp.append(mean(Idata[start:ende,1]))
 					if i==1:
 						Ifit = array([Ifit_temp])
 						Ierror = array([Ierror_temp])
-						Iresults = [Iresult_sin]		#save lmfit minizimer objects for later
+						Iresults = [Iresult_sin]					#save lmfit minizimer objects for future purpose ... maybe
 					else:
 						Ifit = append(Ifit,[array(Ifit_temp)],axis=0)
 						Ierror = append(Ierror,[array(Ierror_temp)],axis=0)
 						Iresults.append(Iresult_sin)
 
-					#data correction
-					Ifit[i-1,2] = PhaseRangeCheck(Ifit[i-1,2])
-
 					#calculate phase difference
-					phasediff = PhaseRangeCheck(Tfit_down_heat[2]-Ifit[i-1,2])
+					if single_crystal==False:
+						phi_T = Tfit_down[2]
+						phi_I = Ifit[i-1,2]
+						
+						# if abs(phi_I) > abs(phi_T):
+							# phasediff = phase_correction(phi_I-phi_T)
+						# else:
+							# phasediff = phase_correction(phi_T-phi_I)
+						
+						phasediff = phase_correction(phi_T-phi_I)
+					else:
+						phasediff = -pi/2
 
 					#NonPyroStrom---------------------------------------------------------------------------
 					#m=magenta (TSC-Strom)
 					
 					#Plot
-					Inp = abs(Ifit[i-1,0]*cos(phasediff))
 					nonpyroparams = Parameters()
-					nonpyroparams.add('amp', value=Inp)
+					nonpyroparams.add('amp', value=abs(Ifit[i-1,0]*-cos(phasediff)))
 					nonpyroparams.add('freq', value=Tfit_down_heat[1])
 					nonpyroparams.add('phase', value=Tfit_down_heat[2])
 					nonpyroparams.add('offs', value=Ifit[i-1,3])
 					nonpyroparams.add('slope', value=Ifit[i-1,4])
+					nonpyroparams = amp_phase_correction(nonpyroparams)
 					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]), 'm-')
+					
+					#Calculating Data from Fit - TSC
+					if calculate_data_from_fit_flag == True:
+						TSC = (array([tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende])])).T		#transpose!
+						if i==1:
+							I_TSC = TSC
+						else:
+							I_TSC = append(I_TSC, TSC, axis=0)
 
 					#Pyrostrom + Koeff.---------------------------------------------------------------------
 					#c=cyan (Pyrostrom)
 					
+					#Plot
+					pyroparams = Parameters()
+					pyroparams.add('amp', value=Ifit[i-1,0]*-sin(phasediff))
+					pyroparams.add('freq', value=Tfit_down_heat[1])
+					pyroparams.add('phase', value=(Tfit_down_heat[2]+pi/2))
+					pyroparams.add('offs', value=Ifit[i-1,3])
+					pyroparams.add('slope', value=Ifit[i-1,4])
+					pyroparams = amp_phase_correction(pyroparams)
+					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), 'c-')
+					
+					#Calculating Data from Fit - Pyro
+					if calculate_data_from_fit_flag == True:
+						pyro = (array([tnew[start:ende], sinfunc(pyroparams, tnew[start:ende])])).T		#transpose!
+						if i==1:
+							I_pyro = pyro
+						else:
+							I_pyro = append(I_pyro, pyro, axis=0)
+
+							
 					#Calc p
 					if start <= turning_point_index:
-						p_Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down_heat[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down_heat[4])+Tfit_down_heat[3]	# Average Temp. in Interval
-						p_SG = ((Ifit[i-1,0]*sin(phasediff))/(area*Tfit_down_heat[0]*2*pi*abs(Tfit_down_heat[1])))		# p (Sharp-Garn)
-						p_BR = (abs(Ifit[i-1,5])/(area*Tfit_down_heat[4]))
+						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down_heat[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down_heat[4])+Tfit_down_heat[3]	# Average Temp. in Interval
+						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_heat[0]*2*pi*abs(Tfit_down_heat[1]))
+						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_heat[4]))
 						perror = p_error_i(Tfit_down_heat, Terror_down_heat, Ifit, Ierror, phasediff, area, area_error, i)
-						
 						turning_p_index = i
 					else:
-						p_Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down_cool[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down_cool[4])+Tfit_down_cool[3]	# Average Temp. in Interval
-						p_SG = ((Ifit[i-1,0]*sin(phasediff))/(area*Tfit_down_cool[0]*2*pi*abs(Tfit_down_cool[1])))		# p (Sharp-Garn)
-						p_BR = (abs(Ifit[i-1,5])/(area*Tfit_down_cool[4]))
+						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down_cool[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down_cool[4])+Tfit_down_cool[3]	# Average Temp. in Interval
+						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_cool[0]*2*pi*abs(Tfit_down_cool[1]))
+						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_cool[4]))
 						perror = p_error_i(Tfit_down_cool, Terror_down_cool, Ifit, Ierror, phasediff, area, area_error, i)
-											# p (Glass-Lang-Steckel)
-					p_phasediff = phasediff * 180/pi							# Phasediff.
-					p_p_TSC_ratio= abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))		# ratio Pyro/TSC
-					p_meanI = Ifit[i-1,5]									# mean I in Interval
-					p_redChi = Iresults[i-1].redchi								# red Chi in Interval
-
-					p_temp = [p_Temp, p_SG, p_BR, p_phasediff, p_p_TSC_ratio, p_meanI, p_redChi]
+					phasediff = degrees(phasediff)					# Phasediff.
+					Ip_TSC_ratio= abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))		# ratio Pyro/TSC
+					meanI = mean(Idata[start:ende,1])
+					Chisqr = Iresults[i-1].chisqr								# red Chi in Interval
+					time = mean(tnew[start:ende])
+					
+					#wrinting temp list
+					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, Chisqr]
+					#append list to array 
 					if i==1:
 						p = array([p_temp])
 						p_error = array([perror])
@@ -1460,108 +1493,101 @@ else:
 						p = append(p, [array(p_temp)], axis=0)
 						p_error = append(p_error,perror)
 					
-					
-					#Plot
-					Ip = abs(Ifit[i-1,0]*sin(phasediff))
-					pyroparams = Parameters()
-					pyroparams.add('amp', value=Ip)
-					pyroparams.add('freq', value=Tfit_down_heat[1])
-					if phasediff > pi:
-						pyroparams.add('phase', value=(Tfit_down_heat[2]+pi/2))
-					else:
-						pyroparams.add('phase', value=(Tfit_down_heat[2]-pi/2))
-					pyroparams.add('offs', value=Ifit[i-1,3])
-					pyroparams.add('slope', value=Ifit[i-1,4])
-					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), 'c-')
-
-					
-
-					#write log
-					log.write("%e\t%e\t%f\t%f\t%f\t%e\t%e\t%e\t%e\n"%(Ifit[i-1,0],Ierror[i-1,0],Ifit[i-1,1],(Ifit[i-1,2]*180/pi),(Ierror[i-1,1]*180/pi),Ifit[i-1,3],Ierror[i-1,2],Ifit[i-1,4],Ierror[i-1,3]))
-
 				draw()
-				log.close()
+				header_string = "Amp [I]\t\t\tFreq [Hz]\t\t\tPhase [rad]\t\t\tOffset [A]\t\t\tSlope [A/s]\t\t\tAmp_Err [A]\t\t\tFreq_Err [Hz]\t\t\tPhase_Err [rad]\t\t\tOffs_Err [A]\t\t\tSlope_Err [A/s]"
+				savetxt(date+"_"+samplename+"_"+T_profile+"_I-Fit.txt",hstack([Ifit,Ierror]), delimiter="\t", header=header_string)
 				print "\nCurrent ... done!"
+				print line
 
 				#Legend for Current Plots
-				leg1 = ax1.legend(title="temperatures",loc='upper left')
-				I_meas_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='o',color='r')
-				I_fit_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='r')
-				I_TSC_leg  = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='m')
-				I_pyro_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='c')
-				leg2 = ax2.legend((I_meas_leg,I_fit_leg,I_TSC_leg,I_pyro_leg),(r"I meas.",r"I-Fit", r"I$_{TSC}$", r"I$_{p}$"),loc='lower right',title="currents")
-				ax2.add_artist(leg1)	#bring legend to forground (ax2 is last layer)
-				ax2.add_artist(leg2)	#add current legend to ax2
-				draw()
-
-				#plot p(T) -----------------------------------------------------------------------------------
-				bild2=figure(date+"_"+samplename+'_Pyro')
-				Tticks = arange(270,430,10)
+				# leg1 = ax1.legend(title="temperatures",loc='upper left')
+				# I_meas_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='o',color='r')
+				# I_fit_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='r')
+				# I_TSC_leg  = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='m')
+				# I_pyro_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='c')
+				# leg2 = ax2.legend((I_meas_leg,I_fit_leg,I_TSC_leg,I_pyro_leg),(r"I meas.",r"I-Fit", r"I$_{TSC}$", r"I$_{p}$"),loc='lower right',title="currents")
+				# ax2.add_artist(leg1)	#bring legend to forground (ax2 is last layer)
+				# ax2.add_artist(leg2)	#add current legend to ax2
+				# draw()
+				
+				#Plotting p(T)-----------------------------------------------------------------------------------------------------------
+				bild2=figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
 
 				#p(T)--------------------------------------------------------------
-				ax3=subplot(311)
+				ax3=subplot(221)
 				ax3.set_autoscale_on(True)
-				ax3.set_xlim(270,430)
-				ax3.set_ylim(min(p[:,1])*1e6-50, max(p[:,1])*1e6+50)
-				ax3.set_xlabel('Temp [K]',size=label_size)
+				ax3.set_xlim(p[0,1],p[turning_p_index,1])
+				ax3.set_ylim(min(p[:,2])*1e6-50, max(p[:,2])*1e6+50)
+				ax3.set_xlabel('Temperature [K]',size=label_size)
 				ax3.set_ylabel(r"p [$\mu$C/Km$^2$]",color='b',size=label_size)
-				xticks(Tticks)
+
 				ax3.grid(b=None, which='major', axis='both', color='grey')
+				ax3.errorbar(p[:turning_p_index,1],(p[:turning_p_index,2]*1e6), yerr=p_error[:turning_p_index]*1e6, fmt="b.", elinewidth=None, capsize=3, label='p (SG) - heating')
+				ax3.errorbar(p[turning_p_index:,1],(p[turning_p_index:,2]*1e6), yerr=p_error[turning_p_index:]*1e6, fmt="bo", elinewidth=None, capsize=3, label='p (SG) - cooling')
 				
-				ax3.errorbar(p[:turning_p_index,0],(p[:turning_p_index,1]*1e6), yerr=p_error[:turning_p_index]*1e6, fmt="b.", elinewidth=None, capsize=3, label='p (SG) - heat')
-				ax3.errorbar(p[turning_p_index:,0],(p[turning_p_index:,1]*1e6), yerr=p_error[turning_p_index:]*1e6, fmt="bv", elinewidth=None, capsize=3, label='p (SG) - cool')
-				
-				#ax3.plot(p[:turning_p_index,0],(p[:turning_p_index,2]*1e6), "r.", label='p (BR) - heat')
-				#ax3.plot(p[turning_p_index:,0],(p[turning_p_index:,2]*1e6), "rv", label='p (BR) - cool')
-				
-				ax3.legend(loc=3)
+				if BR_flag == True:
+					ax3.plot(p[:turning_p_index,1],(p[:turning_p_index,3]*1e6), "r.", label='p (BR) - heating')
+					ax3.plot(p[turning_p_index:,1],(p[turning_p_index:,3]*1e6), "ro", label='p (BR) - cooling')
+					ax3.legend(loc=3)
 
 				#p/TSC ration---------------------------------------------------------
-				ax5=subplot(312,sharex=ax3)
+				ax5=subplot(222,sharex=ax3)
 				ax5.set_autoscale_on(True)
-				ax5.set_xlim(270,420)
-				xticks(Tticks)
+				ax5.set_xlim(ax3.get_xbound())
 				ax5.grid(b=None, which='major', axis='both', color='grey')
-				ax5.set_xlabel('Temp [K]',size=label_size)
+				ax5.set_xlabel('Temperature [K]',size=label_size)
 				ax5.set_ylabel(r"I$_p$/I$_{TSC}$",color='g',size=label_size)
-				ax5.semilogy(p[:turning_p_index,0], p[:turning_p_index,4], "g.", label=r"I$_p$/I$_{TSC}$ - heat")
-				ax5.semilogy(p[turning_p_index:,0], p[turning_p_index:,4], "gv", label=r"I$_p$/I$_{TSC}$ - cool")
+				ax5.semilogy(p[:turning_p_index,1], p[:turning_p_index,5], "g.", label=r"I$_p$/I$_{TSC}$ - heating")
+				ax5.semilogy(p[turning_p_index:,1], p[turning_p_index:,5], "go", label=r"I$_p$/I$_{TSC}$ - cooling")
 
-				#redChi---------------------------------------------------------------
-				ax6=subplot(313,sharex=ax3)
+				#Chisqr---------------------------------------------------------------
+				ax6=subplot(224,sharex=ax3)
 				ax6.set_autoscale_on(True)
-				ax6.set_xlim(270,420)
-				xticks(Tticks)
+				ax6.set_xlim(ax3.get_xbound())
 				ax6.grid(b=None, which='major', axis='both', color='grey')
-				ax6.set_xlabel('Temp [K]',size=label_size)
-				ax6.set_ylabel(r"red. $X^2$",color='c',size=label_size)
-				ax6.semilogy(p[:turning_p_index,0], p[:turning_p_index,6], "c.", label=r"red. $X^2$ - heat")
-				ax6.semilogy(p[turning_p_index:,0], p[turning_p_index:,6], "cv", label=r"red. $X^2$ - cool")
+				ax6.set_xlabel('Temperature [K]',size=label_size)
+				ax6.set_ylabel(r"$X^2$",color='c',size=label_size)
+				ax6.semilogy(p[:turning_p_index,1], p[:turning_p_index,7], "c.", label=r"$X^2$ - heating")
+				ax6.semilogy(p[turning_p_index:,1], p[turning_p_index:,7], "co", label=r"$X^2$ - cooling")
 
-				print "--------------------------------"
-				print "...writing log files"
-				log_name2 = date+"_"+samplename+"_SineWave+LinRamp_p-Fits.txt"
-				log = open(log_name2, "w+")
-				log.write("#Berechnete Daten\n")
-				log.write("#----------------\n")
-				log.write("#Flaeche:\t%e m2\n" % area)
-				log.write("#----------------\n")
-				log.write("#Temp\tPyro-Koeff(S-G)\t(Error)\tPyro-Koeff(L-S)\tPhasediff\tPolarization\n")
-				log.write("#[K]\t[C/K*m2]\tC/K*m2]\t[C/m2]\n")
-				try:
-					for i in range(0,len(p)-1):
-						if i>0 and i<len(P):
-							log.write("%f\t%e\t%e\t%e\t%e\t%f\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3],P[i,1]))
-						else:
-							log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3]))
-				except NameError:
-					for i in range(0,len(p)-1):
-						log.write("%f\t%e\t%e\t%e\t%e\t%f\n" % (p[i,0],p[i,1],p_error[i],p[i,4],p[i,2],p[i,3]))
-				log.close()
+				#Phasediff---------------------------------------------------------------
+				ax7=subplot(223,sharex=ax3)
+				ax7.set_autoscale_on(True)
+				ax7.set_xlim(ax3.get_xbound())
+				ax7.set_ylim(0,360)
+				ax7.axhline(180, color='k')
+				ax7.grid(b=None, which='major', axis='both', color='grey')
+				ax7.set_xlabel('Temperature [K]',size=label_size)
+				ax7.set_ylabel(r"$\phi$ [deg]",color='k',size=label_size)
+				ax7.plot(p[:turning_p_index,1],p[:turning_p_index,4],"k.", label="Phasediff. - heating")
+				ax7.plot(p[turning_p_index:,1],p[turning_p_index:,4],"ko", label="Phasediff. - cooling")
+				
+				ax8 = ax7.twinx()
+				ax8.set_xlim(ax3.get_xbound())
+				ax8.set_ylabel(r"$A_I$ [A]",color='r',size=label_size)
+				ax8.plot(p[:turning_p_index,1],Ifit[:turning_p_index,0],"r.", label="Amplitude - heating")
+				ax8.plot(p[turning_p_index:,1],Ifit[turning_p_index:,0],"ro", label="Amplitude - cooling")
+				
+				show()
+
+				tight_layout()
+				
+				#writing log files
+				print "...writing log files"				
+				header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi"
+				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", p, delimiter="\t", header=header_string)
+				
+				if calculate_data_from_fit_flag == True:
+					header_string = "time [s]\t\t\tI_TSC [A]\t\t\tI_pyro [A]"
+					savetxt(date+"_"+samplename+"_"+T_profile+"_"+"DataFromFit.txt", vstack([I_TSC[:,0], I_TSC[:,1], I_pyro[:,1]]).T, delimiter="\t", header=header_string)
 			
-			#save figure
-			saving_figure(bild1)
-			saving_figure(bild2, pbild=True)
+				#save figure
+				saving_figure(bild1)
+				saving_figure(bild2, pbild=True)
+			else:
+				saving_figure(bild1)
+		
+			print line
 		
 		#SquareWave
 		elif measurement_info['waveform'] == "SquareWave":
