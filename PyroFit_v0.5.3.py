@@ -208,7 +208,6 @@ def extract_HV_params(filename):
 		HVmax = datei.readline().strip().split(" ")[4]
 		zeile = datei.readline()
 		if zeile!='' and zeile!='\r\n' and zeile !='\n':
-                        print 'yes'
 			HVcomp = zeile.strip().split(" ")[5]
 			datei.close()
 			return [float(HVmax), float(HVcomp)]
@@ -587,12 +586,12 @@ for filename in filelist:
 		Idata = Idata[erase_bools_I]
 		erase_bools_I = (Idata[:,1]!=0.015)			#overflow in measurement program
 		Idata = Idata[erase_bools_I]
-		erase_bools_I = (Idata[:,1]<upper_I_lim)	#user defined low pass filter with upper_I_lim variable
-		Idata = Idata[erase_bools_I]
 
 		filecounter = filecounter + 1
 		sys.stdout.write("\rReading: %d/%d completed" % (filecounter,len(filelist)))
 		if current_filter_flag == True:
+			erase_bools_I = (Idata[:,1]<upper_I_lim)	#user defined low pass filter with upper_I_lim variable
+			Idata = Idata[erase_bools_I]
 			sys.stdout.write("\rData filter applied")
 		sys.stdout.flush()
 
@@ -1898,8 +1897,10 @@ else:
 		ax1.set_ylabel('voltage [A]',color='g',size='20')
 		ax1.grid(b=None, which='major', color='grey', linewidth=1)
 		ax1.autoscale(enable=True, axis='y', tight=None)
-		ax1.plot(HVdata[:,0], HVdata[:,1], "g.", label='Voltage')
-
+		ax1.plot(HVdata[:,0], HVdata[:,1], "g.", label='Voltage (set)')
+		ax1.plot(HVdata[:,0], HVdata[:,2], "c.", label='Voltage (meas.)')
+		ax1.legend(loc=1)
+		
 		#Plot Current
 		ax2.autoscale(enable=True, axis='y', tight=None)
 		ax2.set_ylabel('current [A]',color='r',size='20')
