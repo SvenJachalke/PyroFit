@@ -33,7 +33,7 @@ calculate_data_from_fit_flag = False			        #True = saving fit as data points
 PS_flag = False										#flag if PS should be calculated from p(T)
 BR_flag = False										#Flag for ByerRoundy Plot (False=not plotting)
 start_index = 100                                   #start index for fit/plot (100 = 50s, because 2 indices = 1s)
-single_crystal = False                              #for single crystals phase=90deg ... thermal contact correction
+single_crystal = False                               #for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
 fit_periods = 2										#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
@@ -1083,7 +1083,7 @@ else:
 					Chisqr = Iresults[i-1].chisqr																								# Chi square in Interval
 
 					#wrinting temp list
-					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, Chisqr]
+					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, Chisqr, perror]
 					#append list to array 
 					if i==1:
 						p = array([p_temp])
@@ -1207,10 +1207,10 @@ else:
 				print line
 				print "...writing log files"				
 				if PS_flag == True:
-					header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2]\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\t\tPolarization [C/m2]"
+					header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2]\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\t\tp_err [C/Km2]\t\t\tPolarization [C/m2]"
 
 				else:
-					header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi"
+					header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\tp_err [C/Km2]"
 				
 				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", p, delimiter="\t", header=header_string)
 				
