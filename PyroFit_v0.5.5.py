@@ -28,11 +28,11 @@ from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
 upper_I_lim = 1e-3                                  #limitation of current in plot and fit (for spikes, ...)
-temp_filter_flag = True                             #True = no plot/fit of second temperature (top PT100)
+temp_filter_flag = False                             #True = no plot/fit of second temperature (top PT100)
 calculate_data_from_fit_flag = False			        #True = saving fit as data points to txt file for I_pyro and I_TSC
 PS_flag = False										#flag if PS should be calculated from p(T)
 BR_flag = False										#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 100                                   #start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 200                                 #start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                               #for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
 fit_periods = 2										#how many periods have to fitted with sine wave in SinLinRamp
@@ -424,6 +424,7 @@ def fit(x, y, start, end, slice, start_parameters, vary_freq=True, heating=True)
 			end [int]
 			start_paramters [dict]
 			vary_freq [bool]
+			heating [bool], - heating rate (True) or cool rate (False) as start parameter
 	Return:	results [minimize instance]
 			Params [lmfit dict]
 	"""
@@ -568,7 +569,7 @@ for filename in filelist:
 		measurement_info = extract_T_stimulation_params(filename)
 		samplename = extract_samplename(filename)
 		
-		Tdata = loadtxt(filename, skiprows=10)
+		Tdata = loadtxt(filename, skiprows=9)
 		
 		#previous filter of Tdata
 		erase_bools_T = (Tdata[:,1]!=9.9e39)	#overflow on down temperature
@@ -724,7 +725,7 @@ else:
 			else:
 				tnew, Tnew_down, Tnew_top, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 				bild, ax1, ax2 = plot_graph(tnew, Tnew_down, Inew, T_profile)
-				ax1.plot(tnew[start_index:-5:skip_points], Tnew_top[start_index::skip_points], 'go', label="T meas. (Top)")
+				ax1.plot(tnew[start_index:-5:5], Tnew_top[start_index::5], 'go', label="T meas. (Top)")
 				ax1.autoscale(enable=True, axis='y', tight=None)
 				ax1.legend(title="temperatures", loc='upper right')
 
@@ -751,7 +752,7 @@ else:
 				#for top temperature
 				if temp_filter_flag == False:
 
-					Tresult_high, Tparams_high = fit(tnew, Tnew_high, start_index, len(Tnew_high)-1,5,measurement_info, True)
+					Tresult_high, Tparams_high = fit(tnew, Tnew_top, start_index, len(Tnew_top)-1,5,measurement_info, True)
 					#correction of phase and amplitude
 					Tparams_high = amp_phase_correction(Tparams_high)
 					#extract params dict to lists
@@ -845,7 +846,7 @@ else:
 				if input == "y":
 					consoleprint_fit(Tparams_down, "Temperature (Down)")
 					if temp_filter_flag == False:
-						consoleprint_fit(Tfit_high, "Temperature (High)")
+						consoleprint_fit(Tparams_high, "Temperature (High)")
 					consoleprint_fit(Iparams,"Current")
 				else:
 					pass
@@ -935,7 +936,7 @@ else:
 
 				#for top temperature-------------------
 				if temp_filter_flag == False:
-					Tresult_high, Tparams_high = fit(tnew, Tnew_top, start_index, limit,1, measurement_info, True)
+					Tresult_high, Tparams_high = fit(tnew[:-5], Tnew_top, start_index, limit,1, measurement_info, True)
 					#correction of phase and amplitude
 					Tparams_high = amp_phase_correction(Tparams_high)
 					#extract params dict to lists
