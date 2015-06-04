@@ -28,13 +28,13 @@ from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
 upper_I_lim = 1e-3                                  #limitation of current in plot and fit (for spikes, ...)
-temp_filter_flag = False                             #True = no plot/fit of second temperature (top PT100)
+temp_filter_flag = True                             #True = no plot/fit of second temperature (top PT100)
 calculate_data_from_fit_flag = False			        #True = saving fit as data points to txt file for I_pyro and I_TSC
 PS_flag = False										#flag if PS should be calculated from p(T)
 BR_flag = False										#Flag for ByerRoundy Plot (False=not plotting)
 start_index = 200                                 #start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                               #for single crystals phase=90deg ... thermal contact correction
-interpolation_step = 0.5
+interpolation_step = 0.25
 fit_periods = 2										#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 
@@ -283,9 +283,9 @@ def consoleprint_fit(fit, name):
 
 # plot functions ---------------------------------------------------------------------------------------------------------------
 def set_skip_points():
-	if len(tnew) < 1000:
+	if len(tnew) < 10000:
 		return 	1
-	elif len(tnew) >= 1000 and len(tnew) <= 10000:
+	elif len(tnew) >= 10000 and len(tnew) <= 100000:
 		return 3
 	else:
 		return 6
@@ -432,7 +432,7 @@ def fit(x, y, start, end, slice, start_parameters, vary_freq=True, heating=True)
 	#initialize list and dicts for fit
 	Params = Parameters()
 	Params.add('amp', value=start_parameters['amp'],min=0.0)
-	Params.add('freq', value=start_parameters['freq'], min=1e-5, max=0.1, vary=vary_freq)
+	Params.add('freq', value=start_parameters['freq'], min=1e-5, max=0.2, vary=vary_freq)
 	Params.add('phase', value=0.1)
 	Params.add('offs', value=start_parameters['offs'], min=0.0)
 	if heating==True:
@@ -738,7 +738,7 @@ else:
 				print "... fitting"
 				
 				#Fit temperature----------------------------------------------------------------------------------------
-				Tresult_down, Tparams_down = fit(tnew, Tnew_down, start_index, len(Tnew_down)-1,1,measurement_info, True)
+				Tresult_down, Tparams_down = fit(tnew, Tnew_down, start_index, len(Tnew_down)-1,1,measurement_info, True, True)
 				#correction of phase and amplitudes
 				Tparams_down = amp_phase_correction(Tparams_down)
 				#extract params dict to lists
@@ -752,7 +752,7 @@ else:
 				#for top temperature
 				if temp_filter_flag == False:
 
-					Tresult_high, Tparams_high = fit(tnew, Tnew_top, start_index, len(Tnew_top)-1,5,measurement_info, True)
+					Tresult_high, Tparams_high = fit(tnew, Tnew_top, start_index, len(Tnew_top)-1,5,measurement_info, True, True)
 					#correction of phase and amplitude
 					Tparams_high = amp_phase_correction(Tparams_high)
 					#extract params dict to lists
@@ -767,7 +767,7 @@ else:
 				#initialize parameters dict for current fit
 				Iparams = Parameters()
 				Iparams.add('amp', value=1e-11)
-				Iparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.1, vary=False)
+				Iparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.2, vary=False)
 				Iparams.add('phase', value=1.0)
 				Iparams.add('offs', value=1e-10)
 				Iparams.add('slope', value=1e-10)
@@ -920,7 +920,7 @@ else:
 				log = open(date+"_"+samplename+"_"+T_profile+"_T-Fit.txt", 'w+')
 				
 				#Temperature Fit -------------------------------------------------------------------------------------
-				Tresult_down, Tparams_down = fit(tnew, Tnew_down,start_index,limit,1,measurement_info, True)
+				Tresult_down, Tparams_down = fit(tnew, Tnew_down,start_index,limit,1,measurement_info, True, True)
 				#correction of phase and amplitudes
 				Tparams_down = amp_phase_correction(Tparams_down)
 				#extract params dict to lists
@@ -936,7 +936,7 @@ else:
 
 				#for top temperature-------------------
 				if temp_filter_flag == False:
-					Tresult_high, Tparams_high = fit(tnew[:-5], Tnew_top, start_index, limit,1, measurement_info, True)
+					Tresult_high, Tparams_high = fit(tnew[:-5], Tnew_top, start_index, limit,1, measurement_info, True, True)
 					#correction of phase and amplitude
 					Tparams_high = amp_phase_correction(Tparams_high)
 					#extract params dict to lists
@@ -964,7 +964,7 @@ else:
 				
 				Iparams = Parameters()
 				Iparams.add('amp', value=1e-11)
-				Iparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.1, vary=False)
+				Iparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.2, vary=False)
 				Iparams.add('phase', value=1.0)
 				Iparams.add('offs', value=1e-10)
 				Iparams.add('slope', value=1e-10)
@@ -1289,7 +1289,7 @@ else:
 				satzlaenge = (len(tnew)-1-start_index)/T_perioden
 				
 				#Temp fit/plot for heating-----------------------------------------------------------------------------
-				Tresult_down_heat, Tparams_down_heat = fit(tnew, Tnew_down,start_index,turning_point_index,1,measurement_info)
+				Tresult_down_heat, Tparams_down_heat = fit(tnew, Tnew_down,start_index,turning_point_index,1,measurement_info,True,True)
 				#correction of phase and amplitudes
 				Tparams_down_heat = amp_phase_correction(Tparams_down_heat)
 				#extract params dict to lists
@@ -1303,7 +1303,7 @@ else:
 				fileprint_fit(log,Tparams_down_heat,"Temperature (Down) - Heating")
 				#for top temperature-------------------
 				if temp_filter_flag == False:
-					Tresult_high_heat, Tparams_high_heat = fit(tnew, Tnew_top, start_index, turning_point_index,1, measurement_info)
+					Tresult_high_heat, Tparams_high_heat = fit(tnew, Tnew_top, start_index, turning_point_index,1, measurement_info.True.True)
 					#correction of phase and amplitude
 					Tparams_high_heat = amp_phase_correction(Tparams_high_heat)
 					#extract params dict to lists
@@ -1318,7 +1318,7 @@ else:
 				
 				
 				#Temp fit/plot for cooling-----------------------------------------------------------------------------
-				Tresult_down_cool, Tparams_down_cool = fit(tnew, Tnew_down,turning_point_index,len(tnew)-1,1,measurement_info, heating=False)
+				Tresult_down_cool, Tparams_down_cool = fit(tnew, Tnew_down,turning_point_index,len(tnew)-1,1,measurement_info, True. heating=False)
 				#correction of phase and amplitudes
 				Tparams_down_cool = amp_phase_correction(Tparams_down_cool)
 				#extract params dict to lists
@@ -1331,7 +1331,7 @@ else:
 				#file output
 				fileprint_fit(log,Tparams_down_cool,"Temperature (Down) - Cooling")  
 				if temp_filter_flag == False:
-					Tresult_high_cool, Tparams_high_cool = fit(tnew, Tnew_top, turning_point_index, len(tnew)-1,1, measurement_info)
+					Tresult_high_cool, Tparams_high_cool = fit(tnew, Tnew_top, turning_point_index, len(tnew)-1,1, measurement_info, True, heating=False)
 					#correction of phase and amplitudes
 					Tparams_high_cool = amp_phase_correction(Tparams_high_cool)
 					#extract params dict to lists
@@ -1356,7 +1356,7 @@ else:
 				
 				Iparams = Parameters()
 				Iparams.add('amp', value=1e-9)
-				Iparams.add('freq', value=Tfit_down_cool[1], min=1e-5, max=0.1, vary=False)
+				Iparams.add('freq', value=Tfit_down_cool[1], min=1e-5, max=0.2, vary=False)
 				Iparams.add('phase', value=1.0)
 				Iparams.add('offs', value=1e-10)
 				Iparams.add('slope', value=1e-10)
