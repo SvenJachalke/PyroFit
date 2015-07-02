@@ -34,7 +34,7 @@ PS_flag = False										#flag if PS should be calculated from p(T)
 BR_flag = False										#Flag for ByerRoundy Plot (False=not plotting)
 start_index = 200                                 #start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                               #for single crystals phase=90deg ... thermal contact correction
-interpolation_step = 0.25
+interpolation_step = 0.5
 fit_periods = 2										#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 
@@ -584,6 +584,8 @@ for filename in filelist:
 
 		#previous filtering of data
 		erase_bools_I = (Idata[:,1]!=9.9e39)		#overflow on Keithley amperemeter
+		Idata = Idata[erase_bools_I]
+		erase_bools_I = (Idata[:,1]!=9.9e37)
 		Idata = Idata[erase_bools_I]
 		erase_bools_I = (Idata[:,1]!=0.015)			#overflow in measurement program
 		Idata = Idata[erase_bools_I]
@@ -1303,7 +1305,7 @@ else:
 				fileprint_fit(log,Tparams_down_heat,"Temperature (Down) - Heating")
 				#for top temperature-------------------
 				if temp_filter_flag == False:
-					Tresult_high_heat, Tparams_high_heat = fit(tnew, Tnew_top, start_index, turning_point_index,1, measurement_info.True.True)
+					Tresult_high_heat, Tparams_high_heat = fit(tnew, Tnew_top, start_index, turning_point_index,1, measurement_info,True,True)
 					#correction of phase and amplitude
 					Tparams_high_heat = amp_phase_correction(Tparams_high_heat)
 					#extract params dict to lists
@@ -1318,7 +1320,7 @@ else:
 				
 				
 				#Temp fit/plot for cooling-----------------------------------------------------------------------------
-				Tresult_down_cool, Tparams_down_cool = fit(tnew, Tnew_down,turning_point_index,len(tnew)-1,1,measurement_info, True. heating=False)
+				Tresult_down_cool, Tparams_down_cool = fit(tnew, Tnew_down,turning_point_index,len(tnew)-1,1,measurement_info, True, heating=False)
 				#correction of phase and amplitudes
 				Tparams_down_cool = amp_phase_correction(Tparams_down_cool)
 				#extract params dict to lists
