@@ -375,7 +375,7 @@ def expdecay(params, x, data=None):
 	input: Parameters Dict (lmfit)
 	output: decay model
 	"""
-	model = params['A'].value * exp(-x/ params['decay'].value) + params['offs'].value
+	model = params['factor'].value * exp(-x/ params['decay'].value) + params['offs'].value
 
 	if data==None:
 		return model
@@ -1946,19 +1946,20 @@ else:
 
 			#plot
 			ax2.plot(tnew[start:end], expdecay(expparams, tnew[start:end]), 'k-')
-			box_text = "Temperature: "+str(start_parameters[5])+" K\nmax.Voltage: "+str(max(HVdata[:,1]))+" V\nCompliance: "+str(HV_set[1])+" A\nA: " + str(expparams['factor'].value) + "\nt0: "+ str(expparams['decay'].value) + "s\nIoffs: " + str(expparams['offs'].value) + "A"
-			box = figtext(0.55,0.15,box_text,fontdict=None, bbox=dict(facecolor='white', alpha=0.5))
+			box_text = "Temperature: "+str(measurement_info['T_Limit_H'])+" K\nmax.Voltage: "+str(max(HVdata[:,1]))+" V\nCompliance: "+str(HV_set[1])+" A\nA: " + str(expparams['factor'].value) + "\nt0: "+ str(expparams['decay'].value) + "s\nIoffs: " + str(expparams['offs'].value) + "A"
+			box = plot_textbox(box_text)
+			ax2.add_artist(box)
 			draw()
 
 			#console output
 			print "-->Exp-Fit:\tA=%e\n\t\tt0=%ds\n\t\tO=%eA" % (expparams['factor'].value, expparams['decay'].value, expparams['offs'].value)
 
 		else:
-			box_text = "Temperature: "+str(measurement_info['T_Limit_H'])+" K\nmax.Voltage: "+str(max(HVdata[:,1]))+" V\nCompliance: "+str(HV_set[1])+" A"
-			box = figtext(0.65,0.15,box_text,fontdict=None, bbox=dict(facecolor='white', alpha=0.5))
-
-		draw()
-
+			box_text = "Temperature: "+str(measurement_info['T_Limit_H'])+" K\nmax.Voltage: "+str(max(HVdata[:,1]))+" V\nCompliance: "+str(HV_set[1])+" A"				
+			box = plot_textbox(box_text)
+			ax2.add_artist(box)
+			draw()
+				
 		#save figure
 		print "--------------------------------"
 		print "...saving figure"
