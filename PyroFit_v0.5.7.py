@@ -1890,7 +1890,7 @@ else:
 		#Plotting of Data
 		print "...plotting"
 		head = date+"_"+samplename + "_AutoPol"
-		bild = figure(head)
+		bild = figure(head,figsize=fig_size)
 		ax1 = subplot(111)
 		ax2 = ax1.twinx()
 		title(samplename+"_AutoPol",size='15')
@@ -1955,7 +1955,12 @@ else:
 			print "-->Exp-Fit:\tA=%e\n\t\tt0=%ds\n\t\tO=%eA" % (expparams['factor'].value, expparams['decay'].value, expparams['offs'].value)
 
 		else:
-			box_text = "Temperature: "+str(measurement_info['T_Limit_H'])+" K\nmax.Voltage: "+str(max(HVdata[:,1]))+" V\nCompliance: "+str(HV_set[1])+" A"				
+			if HV_set[1]>0:
+				maxVolt = str(min(HVdata[:,1]))
+			else:
+				maxVolt = str(min(HVdata[:,1]))
+			
+			box_text = "Temperature: "+str(measurement_info['T_Limit_H'])+" K\nmax.Voltage: "+maxVolt +" V\nCompliance: "+str(HV_set[1])+" A"				
 			box = plot_textbox(box_text)
 			ax2.add_artist(box)
 			draw()
