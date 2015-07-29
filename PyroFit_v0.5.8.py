@@ -903,9 +903,12 @@ else:
 				area, area_error = get_area()
 				print("Area: %e m2" % area)
 				
-				#important calculations for further fit;)-------------------------5-------------------------------------
+				#important calculations for further fit;)---------------------------------------------------------------
 				#check when ramp runs into T_Limit_H
-				maxT_ind = Tnew_down>(measurement_info['T_Limit_H']-1)
+				if max(Tnew_down) < measurement_info['T_Limit_H']:
+					maxT_ind = Tnew_down>max(Tnew_down)-1
+				else:
+					maxT_ind = Tnew_down>(measurement_info['T_Limit_H']-1)
 				number_of_lim = maxT_ind.tolist().count(True)
 				limit = len(Tnew_down)-number_of_lim-1
 
