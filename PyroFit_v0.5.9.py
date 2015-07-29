@@ -1959,7 +1959,7 @@ else:
 
 		else:
 			if HV_set[1]>0:
-				maxVolt = str(min(HVdata[:,1]))
+				maxVolt = str(max(HVdata[:,1]))
 			else:
 				maxVolt = str(min(HVdata[:,1]))
 			
