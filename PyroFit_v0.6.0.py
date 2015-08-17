@@ -27,15 +27,16 @@ from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-upper_I_lim = 1e-3                                  #limitation of current in plot and fit (for spikes, ...)
+upper_I_lim = 1.4e-8                                  #limitation of current in plot and fit (for spikes, ...)
 temp_filter_flag = True                             #True = no plot/fit of second temperature (top PT100)
+current_filter_flag = True
 calculate_data_from_fit_flag = False			        #True = saving fit as data points to txt file for I_pyro and I_TSC
 PS_flag = False										#flag if PS should be calculated from p(T)
 BR_flag = False										#Flag for ByerRoundy Plot (False=not plotting)
 start_index = 200                                 #start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                               #for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
-fit_periods = 2										#how many periods have to fitted with sine wave in SinLinRamp
+fit_periods = 1										#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 
 Ifit_counter_limit = 5								#repeat number when I-fit insufficient
@@ -556,7 +557,7 @@ print line
 
 filelist = glob.glob('*.log')
 filecounter = 0
-current_filter_flag = False
+
 
 #check folder for files and read files!
 for filename in filelist:
@@ -593,7 +594,7 @@ for filename in filelist:
 		filecounter = filecounter + 1
 		sys.stdout.write("\rReading: %d/%d completed" % (filecounter,len(filelist)))
 		if current_filter_flag == True:
-			erase_bools_I = (Idata[:,1]<upper_I_lim)	#user defined low pass filter with upper_I_lim variable
+			erase_bools_I = (Idata[:,1]< upper_I_lim)	#user defined low pass filter with upper_I_lim variable
 			Idata = Idata[erase_bools_I]
 			sys.stdout.write("\rData filter applied")
 		sys.stdout.flush()
