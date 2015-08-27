@@ -496,21 +496,21 @@ def get_area():
 		output: area [float]
 		"""
 	input = raw_input("Area [m2]:")
-	if input is "A":								#d13
+	if input == "A":								#d13
 		return area_d13, 0.0082*area_d13
-	elif input is "Aold":
+	elif input == "Aold":
 		return area_d13_old, 0.0082*area_d13_old
-	elif input is "B":								#d15
+	elif input == "B":								#d15
 		return area_d15, 0.0082*area_d15
-	elif input is "Bold":
+	elif input == "Bold":
 		return area_d15_old, 0.0082*area_d15_old
-	elif input is "C":								#a5
+	elif input == "C":								#a5
 		return area_a5, 0.0082*area_a5
-	elif input is "D":								#d5
+	elif input == "D":								#d5
 		return area_d5, 0.0082*area_d5
-	elif input is "PMNPT":
+	elif input == "PMNPT":
 		return 1.65e-4, 1.35292e-6			#area of PMN-PT samples with SputterShadowMaskContacts
-	elif input is "Z":						#custom defined values
+	elif input == "Z":						#custom defined values
 		return custom, 0.0082*custom
 	else:
 		return float(input), 0.0082*float(input)	#direct area input
