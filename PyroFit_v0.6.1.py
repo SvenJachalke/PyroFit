@@ -7,8 +7,8 @@
 # Author:	Sven Jachalke
 # Mail:		sven.jachalke@phyik.tu-freiberg.de
 # Adress:	Institut fuer Experimentelle Physik
-#		Leipziger Strasse 23
-#		09596 Freiberg
+#				Leipziger Strasse 23
+#				09596 Freiberg
 #---------------------------------------------------------------------------------------------------------------------------
 #Necessary Python Packages:
 # - scipy.interpolate
@@ -508,6 +508,8 @@ def get_area():
 		return area_a5, 0.0082*area_a5
 	elif input is "D":								#d5
 		return area_d5, 0.0082*area_d5
+	elif input is "PMNPT":
+		return 1.65e-4, 1.35292e-6			#area of PMN-PT samples with SputterShadowMaskContacts
 	elif input is "Z":						#custom defined values
 		return custom, 0.0082*custom
 	else:
