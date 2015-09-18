@@ -27,7 +27,7 @@ from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-upper_I_lim = 1.4e-8                                  #limitation of current in plot and fit (for spikes, ...)
+upper_I_lim = 1e6                                  #limitation of current in plot and fit (for spikes, ...)
 temp_filter_flag = True                             #True = no plot/fit of second temperature (top PT100)
 current_filter_flag = True
 calculate_data_from_fit_flag = False			        #True = saving fit as data points to txt file for I_pyro and I_TSC
@@ -347,6 +347,10 @@ def saving_figure(bild, pbild=False):
 	if pbild == False:
 		image_name = date+"_"+samplename+"_"+T_profile+"_T-I.png"
 		print("...Temperature/Current Plot\n%s" % image_name)
+		bild.savefig(image_name, dpi=set_dpi, transparent=transparency_flag)
+	elif pbild == "Polarize":
+		image_name = date+'_'+samplename+'_Polarize.png'
+		print("...Temperature/Polarization Plot\n%s" % image_name)
 		bild.savefig(image_name, dpi=set_dpi, transparent=transparency_flag)
 	else:
 		image_name = date+"_"+samplename+"_"+T_profile+"_p.png"
@@ -1929,14 +1933,22 @@ else:
 		ax2.plot(Idata[:,0], Idata[:,1], "r.", label='Current')
 
 		show()
-
+		
+		#get switch off time
+		sw_off_index = abs(HVdata[:,1]-max(HVdata[:,1])).argmin()
+		sw_off_time = HVdata[sw_off_index,0]
+		
+		#prepare text box string 
+		box_string = u"temperature: %.2f K\nmax. volt.: %.2f V\ncompl.: %.3e A\nsw.off: %.2f s" % (measurement_info['T_Limit_H'],max(HVdata[:,1]),HV_set[1],sw_off_time)
+		
+		print line
 		#Fit exponential decay
 		input = raw_input("fit exponential decay? (y/n)")
 		if input == "y":
 			#console output and graphical input
-			print "...fitting"
-			print "-->select start of fit from graph."
+			print "Select start of fit from graph."
 			input = ginput()
+			print "...fitting"
 
 			#getting starting time
 			start_time = input[0][0]
@@ -1948,13 +1960,8 @@ else:
 			HVnew = HVinterpol(tnew)
 			Inew = Iinterpol(tnew)
 
-			count = 0
-			for i in arange(0,len(tnew)-1):
-				if tnew[i] < start_time:
-					count = count+1
-
-			start = count
-			end = len(tnew)-20
+			start = abs(tnew-start_time).argmin()
+			end = len(tnew)
 
 			#fit
 			expparams = Parameters()
@@ -1965,30 +1972,26 @@ else:
 
 			#plot
 			ax2.plot(tnew[start:end], expdecay(expparams, tnew[start:end]), 'k-')
-			box_text = "Temperature: "+str(measurement_info['T_Limit_H'])+" K\nmax.Voltage: "+str(max(HVdata[:,1]))+" V\nCompliance: "+str(HV_set[1])+" A\nA: " + str(expparams['factor'].value) + "\nt0: "+ str(expparams['decay'].value) + "s\nIoffs: " + str(expparams['offs'].value) + "A"
-			box = plot_textbox(box_text)
-			ax2.add_artist(box)
-			draw()
-
+			
+			fit_string = "\nA: %.3e\nt0: %.2f s\nI0: %.3e A" % (expparams['factor'].value,expparams['decay'].value,expparams['offs'].value)
+			box_string = box_string + fit_string
+			
 			#console output
-			print "-->Exp-Fit:\tA=%e\n\t\tt0=%ds\n\t\tO=%eA" % (expparams['factor'].value, expparams['decay'].value, expparams['offs'].value)
+			print("A:\t%.2e\nt0:\t%.2f s\nO:\t%.3e A" % (expparams['factor'].value, expparams['decay'].value, expparams['offs'].value))
 
 		else:
 			if HV_set[1]>0:
 				maxVolt = str(max(HVdata[:,1]))
 			else:
-				maxVolt = str(min(HVdata[:,1]))
+				maxVolt = str(min(HVdata[:,1]))					
+		
+		box = plot_textbox(box_string)
+		ax2.add_artist(box)
+		bild.tight_layout()
+		draw()
 			
-			box_text = "Temperature: "+str(measurement_info['T_Limit_H'])+" K\nmax.Voltage: "+maxVolt +" V\nCompliance: "+str(HV_set[1])+" A"				
-			box = plot_textbox(box_text)
-			ax2.add_artist(box)
-			draw()
-				
 		#save figure
-		print "--------------------------------"
-		print "...saving figure"
-		savefig(date+'_'+samplename+'_Polarize.png')
-		print "DONE!"
+		saving_figure(bild,pbild="Polarize")
 
 	#-----------------------------------------------------------------------------------------------------------------------------
 	#HighVoltage always on
