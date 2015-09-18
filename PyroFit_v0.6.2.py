@@ -36,7 +36,7 @@ BR_flag = False										#Flag for ByerRoundy Plot (False=not plotting)
 start_index = 200                                 #start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                               #for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
-fit_periods = 1										#how many periods have to fitted with sine wave in SinLinRamp
+fit_periods = 3										#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 
 Ifit_counter_limit = 5								#repeat number when I-fit insufficient
@@ -53,6 +53,8 @@ transparency_flag = False							#exporting figures with transparent background?
 facecolor_legends = 'white'
 fontsize_box = '10'
 skip_points = 0										#initial skip points in plotting to speed up plotting and zooming (not interpol, fit)
+colorlist = ['m','g', 'c', 'r']
+linestylelist = ['x','*','o ', 'x']
 															#modified in set_skip_points() function with respect to length of time
 line = "--------------------------------"
 
@@ -1162,48 +1164,57 @@ else:
 
 				#Calculating p ---------------------------------------------------------------------------------------
 				print "spontaneous Polarization ..."
-				PS_plot = raw_input("T_C? (y/n):")
+				PS_plot = raw_input("Calculate? (y/n):")
 				if PS_plot == "y":
 					PS_flag = True
-					print "select T_C from the p(T) plot!"
-					#---- Berechnen der Polarisation anhand von T_C (dort ist P = 0)
-					#Finden von TC
-					TC = ginput(1)
-					#T_C = T_C[0][0]
-					#T_C_time = T_C[0][1]
-					print("T_C: %.2f K (%.2f C)" % (TC[0][0],(TC[0][0]-273.15)))
-
-					#getting index of T_C in p array
-					TC_index = abs(p[:,1]-TC[0][0]).argmin()
-
-					#Intgration von von Start-Temp bis TC  (max PS)
-					PS = trapz(p[:TC_index,2], x=p[:TC_index,1])
 					
-					#Polarisationsverlauf
-					for i in arange(TC_index):
-						PS_interval = trapz(p[i:TC_index,2], x=p[i:TC_index,1])
-						if i==0:
-							Polarization = [PS_interval]
-						else:
-							Polarization.append(PS_interval)
+					#generate new ax
+					axP = ax3.twinx()
 					
-					#Rest mit 0 auffüllen!
-					for i in range(TC_index,len(p)):
-						Polarization.append(0.0)
-										
-					#mache Array Typ
-					Polarization = array([Polarization]).T
-					#anfuegen an p
-					p = hstack([p,Polarization])		#letzte Spalte ist Polarizationsverlauf
+					number_of_maxima = raw_input("How many max?: ")
+					number_of_maxima = int(number_of_maxima)
+					print("select TC(s) from the p(T) plot")
+					TC = ginput(number_of_maxima)
+					
+					#get index from array where temp is 300K
+					T300 = abs(p[:,1]-300).argmin()
+					
+					P = []
+					TC_index_list = []
+					#loop for each selected temperature
+					for i in range(number_of_maxima):
+						TC_index = abs(p[:,1]-TC[i][0]).argmin()
+						TC_index_list.append(TC_index)
+						
+						#calc PS with partial trapezoidal integration
+						for f in range(TC_index):
+							PS_interval = trapz(y=p[f:TC_index,2], x=p[f:TC_index,1])
+							if f==0:	
+								P = [PS_interval]
+							else:
+								P.append(PS_interval)
+						
+						#fill rest of array legth with zeros
+						for f in range(TC_index,len(p)):
+							P.append(0.0)
+					
+						#make array type 
+						Polarization = array(P)
 
-					#Plot
-					ax9 = ax3.twinx()
-					ax9.set_autoscale_on(True)
-					ax9.set_xlim(ax3.get_xbound())
-					ax9.set_ylabel(r'Polarization mC/m$^{2}$',color='m',size=label_size)
-					ax9.plot(p[:,1], p[:,8]*1e3, "m*", label="Polarization")
-					draw()
-				
+						#append to p array
+						p = column_stack((p,Polarization))		#letzte Spalte ist Polarizationsverlauf
+					
+					
+						#user message
+						print("%d:\tTC: %.2f K / %.2f C\n\tPS(300K): %.3f mC/km2" % (i+1,TC[i][0],(TC[i][0]-273.15),abs(P[T300])*1e3))
+
+						#Plot
+						axP.semilogy(p[:,1],abs(array(P)*1e3), linestylelist[i], color='m', label="Polarization")
+						cur_ylim = axP.get_ylim()
+						axP.set_ylim(1e0,1e3)
+						axP.set_xlim(ax3.get_xbound())
+						axP.set_ylabel(r'Polarization mC/m$^{2}$',color='m',size=label_size)
+					
 				#Cosmetic Stuff:
 				bild2.tight_layout()
 				draw()
@@ -1215,11 +1226,13 @@ else:
 				#writing log files
 				print line
 				print "...writing log files"				
+				header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\t\tp_err [C/Km2]\t"
+				
 				if PS_flag == True:
-					header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2]\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\t\tp_err [C/Km2]\t\t\tPolarization [C/m2]"
-
-				else:
-					header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\tp_err [C/Km2]"
+					
+					for k in range(number_of_maxima):
+						pol_string = "\t\tPS [C/m2] - TC %.2fK" % p[TC_index_list[k],1]
+						header_string = header_string + pol_string 
 				
 				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", p, delimiter="\t", header=header_string)
 				
