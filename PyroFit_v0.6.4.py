@@ -27,55 +27,55 @@ from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-upper_I_lim = 1e6                                  #limitation of current in plot and fit (for spikes, ...)
-temp_filter_flag = True                             #True = no plot/fit of second temperature (top PT100)
+upper_I_lim = 1e6                                  				#limitation of current in plot and fit (for spikes, ...)
+temp_filter_flag = True                            				#True = no plot/fit of second temperature (top PT100)
 current_filter_flag = True
-calculate_data_from_fit_flag = False			        #True = saving fit as data points to txt file for I_pyro and I_TSC
-PS_flag = False										#flag if PS should be calculated from p(T)
-BR_flag = False										#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 200                                 #start index for fit/plot (100 = 50s, because 2 indices = 1s)
-single_crystal = False                               #for single crystals phase=90deg ... thermal contact correction
+calculate_data_from_fit_flag = False			        	#True = saving fit as data points to txt file for I_pyro and I_TSC
+PS_flag = False													#flag if PS should be calculated from p(T)
+BR_flag = False													#Flag for ByerRoundy Plot (False=not plotting)
+start_index = 200                                					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+single_crystal = False                              				#for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
-fit_periods = 3										#how many periods have to fitted with sine wave in SinLinRamp
+fit_periods = 5														#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 
-Ifit_counter_limit = 5								#repeat number when I-fit insufficient
+Ifit_counter_limit = 5												#repeat number when I-fit insufficient
 
 # General Settings----------------------------------------------------------------------------------------------------------
 # Plot Settings-------------------------------------------------------------------------------------------------------------
-matplotlib.rcParams['legend.fancybox'] = True       #plot fancy box (round edges)
-label_size = '16'									#font size of x,y labels in plot
-enable_title = True									#enable/disable title in plot
-title_size = '15'									#font size of the figure title
-fig_size = (12.0,9.0)							#size of figures (general aspect ratio 4:3!!!)
-set_dpi = 150										#dpi for exporting figures
-transparency_flag = False							#exporting figures with transparent background?
+matplotlib.rcParams['legend.fancybox'] = True       	#plot fancy box (round edges)
+label_size = '16'														#font size of x,y labels in plot
+enable_title = True												#enable/disable title in plot
+title_size = '15'														#font size of the figure title
+fig_size = (12.0,9.0)												#size of figures (general aspect ratio 4:3!!!)
+set_dpi = 150														#dpi for exporting figures
+transparency_flag = False										#exporting figures with transparent background?
 facecolor_legends = 'white'
 fontsize_box = '10'
-skip_points = 0										#initial skip points in plotting to speed up plotting and zooming (not interpol, fit)
+skip_points = 0														#initial skip points in plotting to speed up plotting and zooming (not interpol, fit)
 colorlist = ['m','g', 'c', 'r']
 linestylelist = ['x','*','o ', 'x']
-															#modified in set_skip_points() function with respect to length of time
+							
 line = "--------------------------------"
 
 # Variables for fit parameters----------------------------------------------------------------------------------------------
-Tfit_down = [0,0,0,0,0]								#bottom temperature
+Tfit_down = [0,0,0,0,0]											#bottom temperature
 Terror_high = [0,0,0,0,0]
-Tfit_high = [0,0,0,0,0]								#top temperature
+Tfit_high = [0,0,0,0,0]											#top temperature
 Terror_low = [0,0,0,0,0]
-Ifit = [0,0,0,0,0]									#current
+Ifit = [0,0,0,0,0]													#current
 Ierror = [0,0,0,0,0]
 
 # Areas for pyroKoeff-------------------------------------------------------------------------------------------------------
-area_d5 = pi/4.0*(5.385/1000)**2					#for small Edwards shadow mask (d=5.385mm)
-area_d13 = pi/4.0*(12.68/1000)**2					#for big Edwards shadow mask (d=12.68mm)
-area_d15 = pi/4.0*(15.0/1000)**2					#for single crystals with d=15mm
-area_a5 = 1.4668e-5						            #for 5x5mm samples, e.g. SrTiO3, ...
+area_d5 = pi/4.0*(5.385/1000)**2							#for small Edwards shadow mask (d=5.385mm)
+area_d13 = pi/4.0*(12.68/1000)**2						#for big Edwards shadow mask (d=12.68mm)
+area_d15 = pi/4.0*(15.0/1000)**2							#for single crystals with d=15mm
+area_a5 = 1.4668e-5						            			#for 5x5mm samples, e.g. SrTiO3, ...
 #areas from older skript versions
-area_d13_old = 1.3994e-4							#for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
-area_d15_old = 1.761e-4								#for single crystals with d=15mm
+area_d13_old = 1.3994e-4										#for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
+area_d15_old = 1.761e-4										#for single crystals with d=15mm
 #costums
-custom = pi/4.0*(14.0/1000)**2				        #custorm values which has to be stored but no included in the list above
+custom = pi/4.0*(14.0/1000)**2				        		#custorm values which has to be stored but no included in the list above
 
 
 # Functions-----------------------------------------------------------------------------------------------------------------
@@ -972,7 +972,7 @@ else:
 				#initialize fit variables
 				I_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
 				satzlaenge = limit/I_perioden
-				
+
 				Ifit = zeros((1,5))
 				Ierror = zeros((1,5))
 				
@@ -991,6 +991,14 @@ else:
 				for i in arange(1,I_perioden):
 					start = start_index+int((i*satzlaenge)-satzlaenge)
 					ende = start_index+int(i*satzlaenge)
+					
+					# avaraging singnal part to get algebraic sign (oscillation around pos/neg value?)
+					
+					meanI = mean(Inew[start:ende])
+					if meanI < 0.0:
+						polarityI = "neg"
+					else:
+						polarityI = "pos"
 					
 					#fit of sin and lin func
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
@@ -1014,7 +1022,8 @@ else:
 					sys.stdout.flush()
 					
 					#fit correction (amp/phase)
-					Iparams = amp_phase_correction(Iparams)
+					Iparams = amp_phase_correction(Iparams)	
+					
 					#plot of sin and line fit
 					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]), 'r-')
 					ax2.plot(tnew[start:ende], linear(Iparams_lin, tnew[start:ende]), 'r--')
@@ -1049,7 +1058,10 @@ else:
 					
 					#Plot
 					nonpyroparams = Parameters()
-					nonpyroparams.add('amp', value=abs(Ifit[i-1,0]*-cos(phasediff)))
+					if polarityI == "neg":
+						nonpyroparams.add('amp', value=-1*abs(Ifit[i-1,0]*-cos(phasediff)))
+					else:
+						nonpyroparams.add('amp', value=abs(Ifit[i-1,0]*-cos(phasediff)))
 					nonpyroparams.add('freq', value=Tfit_down[1])
 					nonpyroparams.add('phase', value=Tfit_down[2])
 					nonpyroparams.add('offs', value=Ifit[i-1,3])
@@ -1150,10 +1162,12 @@ else:
 
 				#Phasediff---------------------------------------------------------------
 				ax7=subplot(223,sharex=ax3)
-				ax7.set_autoscale_on(True)
+				#ax7.set_autoscale_on(True)
 				ax7.set_xlim(ax3.get_xbound())
 				ax7.set_ylim(0,360)
 				ax7.axhline(180, color='k')
+				ax7.axhline(90, color='k',linestyle='--')
+				ax7.axhline(270, color='k', linestyle='--')
 				ax7.grid(b=None, which='major', axis='both', color='grey')
 				ax7.set_xlabel('Temperature [K]',size=label_size)
 				ax7.set_ylabel(r"$\phi$ [deg]",color='k',size=label_size)
@@ -1163,7 +1177,7 @@ else:
 				ax8.set_xlim(ax3.get_xbound())
 				ax8.plot(p[:,1],Ifit[:,0],"r.", label="Amplitude")
 				ax8.set_ylabel(r"$A_I$ [A]",color='r',size=label_size)
-				
+
 				show()
 
 				#Calculating p ---------------------------------------------------------------------------------------
