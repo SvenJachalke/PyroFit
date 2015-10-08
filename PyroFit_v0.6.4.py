@@ -36,7 +36,7 @@ BR_flag = False													#Flag for ByerRoundy Plot (False=not plotting)
 start_index = 200                                					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                              				#for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
-fit_periods = 5														#how many periods have to fitted with sine wave in SinLinRamp
+fit_periods = 1														#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 
 Ifit_counter_limit = 5												#repeat number when I-fit insufficient
@@ -993,7 +993,6 @@ else:
 					ende = start_index+int(i*satzlaenge)
 					
 					# avaraging singnal part to get algebraic sign (oscillation around pos/neg value?)
-					
 					meanI = mean(Inew[start:ende])
 					if meanI < 0.0:
 						polarityI = "neg"
@@ -1394,7 +1393,7 @@ else:
 				Ierror = zeros((1,5))
 				
 				Iparams = Parameters()
-				Iparams.add('amp', value=1e-9)
+				Iparams.add('amp', value=1e-11)
 				Iparams.add('freq', value=Tfit_down_cool[1], min=1e-5, max=0.2, vary=False)
 				Iparams.add('phase', value=1.0)
 				Iparams.add('offs', value=1e-10)
@@ -1408,7 +1407,14 @@ else:
 				for i in arange(1,I_perioden):
 					start = start_index+int((i*satzlaenge)-satzlaenge)
 					ende = start_index+int(i*satzlaenge)
-					
+
+					# avaraging singnal part to get algebraic sign (oscillation around pos/neg value?)
+					meanI = mean(Inew[start:ende])
+					if meanI < 0.0:
+						polarityI = "neg"
+					else:
+						polarityI = "pos"
+						
 					#fit of sin and lin func
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
 					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
@@ -1466,6 +1472,10 @@ else:
 					
 					#Plot
 					nonpyroparams = Parameters()
+					if polarityI == "neg":
+						nonpyroparams.add('amp', value=-1*abs(Ifit[i-1,0]*-cos(phasediff)))
+					else:
+						nonpyroparams.add('amp', value=abs(Ifit[i-1,0]*-cos(phasediff)))
 					nonpyroparams.add('amp', value=abs(Ifit[i-1,0]*-cos(phasediff)))
 					nonpyroparams.add('freq', value=Tfit_down_heat[1])
 					nonpyroparams.add('phase', value=Tfit_down_heat[2])
@@ -1537,17 +1547,6 @@ else:
 				savetxt(date+"_"+samplename+"_"+T_profile+"_I-Fit.txt",hstack([Ifit,Ierror]), delimiter="\t", header=header_string)
 				print "\nCurrent ... done!"
 				print line
-
-				#Legend for Current Plots
-				# leg1 = ax1.legend(title="temperatures",loc='upper left')
-				# I_meas_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='o',color='r')
-				# I_fit_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='r')
-				# I_TSC_leg  = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='m')
-				# I_pyro_leg = matplotlib.lines.Line2D(tnew,Inew,linestyle='-',color='c')
-				# leg2 = ax2.legend((I_meas_leg,I_fit_leg,I_TSC_leg,I_pyro_leg),(r"I meas.",r"I-Fit", r"I$_{TSC}$", r"I$_{p}$"),loc='lower right',title="currents")
-				# ax2.add_artist(leg1)	#bring legend to forground (ax2 is last layer)
-				# ax2.add_artist(leg2)	#add current legend to ax2
-				# draw()
 				
 				#Plotting p(T)-----------------------------------------------------------------------------------------------------------
 				bild2=figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
@@ -1562,11 +1561,11 @@ else:
 
 				ax3.grid(b=None, which='major', axis='both', color='grey')
 				ax3.errorbar(p[:turning_p_index,1],(p[:turning_p_index,2]*1e6), yerr=p_error[:turning_p_index]*1e6, fmt="b.", elinewidth=None, capsize=3, label='p (SG) - heating')
-				ax3.errorbar(p[turning_p_index:,1],(p[turning_p_index:,2]*1e6), yerr=p_error[turning_p_index:]*1e6, fmt="bo", elinewidth=None, capsize=3, label='p (SG) - cooling')
+				ax3.errorbar(p[turning_p_index:,1],(p[turning_p_index:,2]*1e6), yerr=p_error[turning_p_index:]*1e6, fmt="bx", elinewidth=None, capsize=3, label='p (SG) - cooling')
 				
 				if BR_flag == True:
 					ax3.plot(p[:turning_p_index,1],(p[:turning_p_index,3]*1e6), "r.", label='p (BR) - heating')
-					ax3.plot(p[turning_p_index:,1],(p[turning_p_index:,3]*1e6), "ro", label='p (BR) - cooling')
+					ax3.plot(p[turning_p_index:,1],(p[turning_p_index:,3]*1e6), "rx", label='p (BR) - cooling')
 					ax3.legend(loc=3)
 
 				#p/TSC ration---------------------------------------------------------
@@ -1577,7 +1576,7 @@ else:
 				ax5.set_xlabel('Temperature [K]',size=label_size)
 				ax5.set_ylabel(r"I$_p$/I$_{TSC}$",color='g',size=label_size)
 				ax5.semilogy(p[:turning_p_index,1], p[:turning_p_index,5], "g.", label=r"I$_p$/I$_{TSC}$ - heating")
-				ax5.semilogy(p[turning_p_index:,1], p[turning_p_index:,5], "go", label=r"I$_p$/I$_{TSC}$ - cooling")
+				ax5.semilogy(p[turning_p_index:,1], p[turning_p_index:,5], "gx", label=r"I$_p$/I$_{TSC}$ - cooling")
 
 				#Chisqr---------------------------------------------------------------
 				ax6=subplot(224,sharex=ax3)
@@ -1587,7 +1586,7 @@ else:
 				ax6.set_xlabel('Temperature [K]',size=label_size)
 				ax6.set_ylabel(r"$X^2$",color='c',size=label_size)
 				ax6.semilogy(p[:turning_p_index,1], p[:turning_p_index,7], "c.", label=r"$X^2$ - heating")
-				ax6.semilogy(p[turning_p_index:,1], p[turning_p_index:,7], "co", label=r"$X^2$ - cooling")
+				ax6.semilogy(p[turning_p_index:,1], p[turning_p_index:,7], "cx", label=r"$X^2$ - cooling")
 
 				#Phasediff---------------------------------------------------------------
 				ax7=subplot(223,sharex=ax3)
@@ -1595,17 +1594,19 @@ else:
 				ax7.set_xlim(ax3.get_xbound())
 				ax7.set_ylim(0,360)
 				ax7.axhline(180, color='k')
+				ax7.axhline(90, color='k',linestyle='--')
+				ax7.axhline(270, color='k', linestyle='--')
 				ax7.grid(b=None, which='major', axis='both', color='grey')
 				ax7.set_xlabel('Temperature [K]',size=label_size)
 				ax7.set_ylabel(r"$\phi$ [deg]",color='k',size=label_size)
 				ax7.plot(p[:turning_p_index,1],p[:turning_p_index,4],"k.", label="Phasediff. - heating")
-				ax7.plot(p[turning_p_index:,1],p[turning_p_index:,4],"ko", label="Phasediff. - cooling")
+				ax7.plot(p[turning_p_index:,1],p[turning_p_index:,4],"kx", label="Phasediff. - cooling")
 				
 				ax8 = ax7.twinx()
 				ax8.set_xlim(ax3.get_xbound())
 				ax8.set_ylabel(r"$A_I$ [A]",color='r',size=label_size)
 				ax8.plot(p[:turning_p_index,1],Ifit[:turning_p_index,0],"r.", label="Amplitude - heating")
-				ax8.plot(p[turning_p_index:,1],Ifit[turning_p_index:,0],"ro", label="Amplitude - cooling")
+				ax8.plot(p[turning_p_index:,1],Ifit[turning_p_index:,0],"rx", label="Amplitude - cooling")
 				
 				show()
 
