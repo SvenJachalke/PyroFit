@@ -18,11 +18,10 @@
  
 # Import modules------------------------------------------------------------------------------------------------------------
 from pylab import *
+import glob, sys, os
 from scipy.interpolate import interp1d, interp2d
 from scipy.signal import argrelmax, argrelmin
-import glob
-import sys
-import os
+from warnings import filterwarnings
 from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
@@ -40,6 +39,9 @@ fit_periods = 1														#how many periods have to fitted with sine wave in 
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 
 Ifit_counter_limit = 5												#repeat number when I-fit insufficient
+
+warnings.filterwarnings("ignore")								#ignores warnings
+ion()
 
 # General Settings----------------------------------------------------------------------------------------------------------
 # Plot Settings-------------------------------------------------------------------------------------------------------------
@@ -1323,6 +1325,7 @@ else:
 				#important calculations for further fit;)--------------------------------------------------------------
 				#check when ramp runs into T_Limit_H
 				turning_point_index = argmax(Tnew_down)
+				end_point_index = argmin(Tnew_down[turning_point_index:])+turning_point_index		#calculate end_point when measurement time is too long cooling ramp^
 				T_perioden = int(tnew[-1]/(1/measurement_info['freq']))
 				satzlaenge = (len(tnew)-1-start_index)/T_perioden
 				
@@ -1356,26 +1359,26 @@ else:
 				
 				
 				#Temp fit/plot for cooling-----------------------------------------------------------------------------
-				Tresult_down_cool, Tparams_down_cool = fit(tnew, Tnew_down,turning_point_index,len(tnew)-1,1,measurement_info, True, heating=False)
+				Tresult_down_cool, Tparams_down_cool = fit(tnew, Tnew_down,turning_point_index,end_point_index,1,measurement_info, True, heating=False)
 				#correction of phase and amplitudes
 				Tparams_down_cool = amp_phase_correction(Tparams_down_cool)
 				#extract params dict to lists
 				Tfit_down_cool, Terror_down_cool = extract_fit_relerr_params(Tparams_down_cool)
 				#Fit-Plot
-				ax1.plot(tnew[turning_point_index:], sinfunc(Tparams_down_cool, tnew[turning_point_index:]), 'b-')
+				ax1.plot(tnew[turning_point_index:end_point_index], sinfunc(Tparams_down_cool, tnew[turning_point_index:end_point_index]), 'b-')
 				draw()
 				#absolute T_high Error
 				total_Terror_down_heat = abs(Tparams_down_cool['amp'].stderr/Tparams_down_cool['amp'].value)+abs(Tparams_down_cool['phase'].stderr/Tparams_down_cool['phase'].value)+abs(Tparams_down_cool['freq'].stderr/Tparams_down_cool['freq'].value)+abs(Tparams_down_cool['offs'].stderr/Tparams_down_cool['offs'].value)+abs(Tparams_down_cool['slope'].stderr/Tparams_down_cool['slope'].value)
 				#file output
 				fileprint_fit(log,Tparams_down_cool,"Temperature (Down) - Cooling")  
 				if temp_filter_flag == False:
-					Tresult_high_cool, Tparams_high_cool = fit(tnew, Tnew_top, turning_point_index, len(tnew)-1,1, measurement_info, True, heating=False)
+					Tresult_high_cool, Tparams_high_cool = fit(tnew, Tnew_top, turning_point_index,end_point_index,1, measurement_info, True, heating=False)
 					#correction of phase and amplitudes
 					Tparams_high_cool = amp_phase_correction(Tparams_high_cool)
 					#extract params dict to lists
 					Tfit_high_cool, Terror_high_cool = extract_fit_relerr_params(Tparams_high_cool)
 					#plot of second fit
-					ax1.plot(tnew[turning_point_index:], sinfunc(Tparams_high_cool, tnew[turning_point_index:0]), 'g-', label='T-Fit (Top) - Cooling')
+					ax1.plot(tnew[turning_point_index:end_point_index], sinfunc(Tparams_high_cool, tnew[turning_point_index:end_point_index]), 'g-', label='T-Fit (Top) - Cooling')
 					draw()
 					#absolute T_high Error
 					total_Terror_high_cool = abs(Tparams_high_cool['amp'].stderr/Tparams_high_cool['amp'].value)+abs(Tparams_high_cool['phase'].stderr/Tparams_high_cool['phase'].value)+abs(Tparams_high_cool['freq'].stderr/Tparams_high_cool['freq'].value)+abs(Tparams_high_cool['offs'].stderr/Tparams_high_cool['offs'].value)+abs(Tparams_high_cool['slope'].stderr/Tparams_high_cool['slope'].value)
@@ -1386,8 +1389,8 @@ else:
 				print "Temperature ... done!"
 
 				#Current Fit -------------------------------------------------------------------------------------
-				I_perioden = int(tnew[-1]/(fit_periods/measurement_info['freq']))
-				satzlaenge = len(tnew)/I_perioden
+				I_perioden = int(tnew[end_point_index]/(fit_periods/measurement_info['freq']))
+				satzlaenge = len(tnew[:end_point_index])/I_perioden
 				
 				Ifit = zeros((1,5))
 				Ierror = zeros((1,5))
