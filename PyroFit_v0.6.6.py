@@ -2015,7 +2015,7 @@ else:
 	#HighVoltage always on
 	elif measurement_info['hv_mode'] == "On":
 		#---------------------------------------------------------------------------------------------------------------------
-		if T_profile == "Thermostat" or T_profile == "SineWave" or T_profile == "SineWave+LinRamp":
+		if T_profile == "Thermostat" or T_profile == "SineWave" or T_profile == "SineWave+LinRamp" or T_profile == "TriangleHat":
 			print "Mode:\t\t"+T_profile
 
 			#Interpolation and plotting of data ----
