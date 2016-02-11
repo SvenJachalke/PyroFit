@@ -26,7 +26,7 @@ from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-upper_I_lim = 1e6                                  				#limitation of current in plot and fit (for spikes, ...)
+upper_I_lim = 1e-3                                  				#limitation of current in plot and fit (for spikes, ...)
 temp_filter_flag = True                            				#True = no plot/fit of second temperature (top PT100)
 current_filter_flag = True
 calculate_data_from_fit_flag = False			        	#True = saving fit as data points to txt file for I_pyro and I_TSC
@@ -604,7 +604,7 @@ for filename in filelist:
 		filecounter = filecounter + 1
 		sys.stdout.write("\rReading: %d/%d completed" % (filecounter,len(filelist)))
 		if current_filter_flag == True:
-			erase_bools_I = (Idata[:,1]< upper_I_lim)	#user defined low pass filter with upper_I_lim variable
+			erase_bools_I = (abs(Idata[:,1])< upper_I_lim)	#user defined low pass filter with upper_I_lim variable
 			Idata = Idata[erase_bools_I]
 			sys.stdout.write("\rData filter applied")
 		sys.stdout.flush()
