@@ -1210,10 +1210,11 @@ else:
 				ax7.set_ylabel(ur"$\phi$ (°)",color=other,size=label_size)
 				ax7.plot(p[:,1],p[:,4],color=other,marker=".",linestyle="", label="Phasediff.")
 				
+				#CurrAmp---------------------------------------------------------------
 				ax8 = ax7.twinx()
 				ax8.set_xlim(ax3.get_xbound())
-				ax8.plot(p[:,1],Ifit[:,0], color=curr_color,marker=".", label="Amplitude")
-				ax8.set_ylabel(r"$I_{\mathrm{Amp}}$ (A)",color=curr_color,linestyle="",size=label_size)
+				ax8.plot(p[:,1],Ifit[:,0], color=curr_color,marker=".", linestyle="", label="Amplitude")
+				ax8.set_ylabel(r"$I_{\mathrm{Amp}}$ (A)",color=curr_color,size=label_size)
 
 				bild2.tight_layout()
 				show()
