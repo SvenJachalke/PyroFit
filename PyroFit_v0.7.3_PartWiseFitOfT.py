@@ -26,17 +26,17 @@ from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-upper_I_lim = 3e-6                                  				#limitation of current in plot and fit (for spikes, ...)
+upper_I_lim = 2e-8                                  				#limitation of current in plot and fit (for spikes, ...)
 temp_filter_flag = True                          				#True = no plot/fit of second temperature (top PT100)
 current_filter_flag = True
 calculate_data_from_fit_flag = False			        	#True = saving fit as data points to txt file for I_pyro and I_TSC
 p_error_log_flag = True										#True: p_SG_error array will be written to txt, else not
 PS_flag = False													#flag if PS should be calculated from p(T)
 BR_flag = False													#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 200                               					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 1200                               					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                              				#for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
-fit_periods = 1														#how many periods have to fitted with sine wave in SinLinRamp
+fit_periods = 2														#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 
 Ifit_counter_limit = 5												#repeat number when I-fit insufficient
@@ -506,11 +506,11 @@ def p_error_i(Tfit, Terror, Ifit, Ierror, phasediff, area, area_error, i):
 			index of fit [int]
 	output: p_error [float]
 	"""
-	err_A_I = (sin(phasediff)/(area * Tfit[0] * Tfit[1])) * Ierror[i-1,0]
-	err_phi = (Ifit[i-1,0]*cos(phasediff)/(area * Tfit[0] * Tfit[1])) * (Ierror[i-1,1]+Terror[1])
-	err_area = -(Ifit[i-1,0]*sin(phasediff)/((area**2)*Tfit[0] * Tfit[1])) * area_error
-	err_A_T = -(Ifit[i-1,0]*sin(phasediff)/(area * (Tfit[0]**2) * Tfit[1])) * Terror[0]
-	err_w_T = -(Ifit[i-1,0]*sin(phasediff)/(area * Tfit[0] * (Tfit[1]**2))) * Terror[1]
+	err_A_I = (sin(phasediff)/(area * Tfit[i-1,0] * Tfit[i-1,1])) * Ierror[i-1,0]
+	err_phi = (Ifit[i-1,0]*cos(phasediff)/(area * Tfit[i-1,0] * Tfit[i-1,1])) * (Ierror[i-1,1]+Terror[i-1,1])
+	err_area = -(Ifit[i-1,0]*sin(phasediff)/((area**2)*Tfit[i-1,0] * Tfit[i-1,1])) * area_error
+	err_A_T = -(Ifit[i-1,0]*sin(phasediff)/(area * (Tfit[i-1,0]**2) * Tfit[i-1,1])) * Terror[i-1,0]
+	err_w_T = -(Ifit[i-1,0]*sin(phasediff)/(area * Tfit[i-1,0] * (Tfit[i-1,1]**2))) * Terror[i-1,1]
 
 	p_ges_error = abs(err_A_I)+abs(err_phi)+abs(err_area)+abs(err_A_T)*abs(err_w_T)
 
@@ -938,7 +938,44 @@ else:
 				area, area_error = get_area()
 				print("Area: %e m2" % area)
 				
-				#important calculations for further fit;)---------------------------------------------------------------
+				#absolute T_high Error
+				# total_Terror_down = abs(Tparams_down['amp'].stderr/Tparams_down['amp'].value)+abs(Tparams_down['phase'].stderr/Tparams_down['phase'].value)+abs(Tparams_down['freq'].stderr/Tparams_down['freq'].value)+abs(Tparams_down['offs'].stderr/Tparams_down['offs'].value)+abs(Tparams_down['slope'].stderr/Tparams_down['slope'].value)
+				#file output
+				# fileprint_fit(log,Tparams_down,"Temperature (Down)")
+				
+
+				#for top temperature-------------------
+				# if temp_filter_flag == False:
+					# Tresult_high, Tparams_high = fit(tnew[:-5], Tnew[:,1], start_index, limit,1, measurement_info, True, True)
+					#correction of phase and amplitude
+					# Tparams_high = amp_phase_correction(Tparams_high)
+					#extract params dict to lists
+					# Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
+					#plot of second fit
+					# ax1.plot(tnew[start_index:-5], sinfunc(Tparams_high, tnew[start_index:-5]), color=volt_color,linestyle='-', label='T-Fit (top)')
+					# draw()
+					#absolute T_high Error
+					# total_Terror_high = abs(Tparams_high['amp'].stderr/Tparams_high['amp'].value)+abs(Tparams_high['phase'].stderr/Tparams_high['phase'].value)+abs(Tparams_high['freq'].stderr/Tparams_high['freq'].value)+abs(Tparams_high['offs'].stderr/Tparams_high['offs'].value)+abs(Tparams_high['slope'].stderr/Tparams_high['slope'].value)
+					#file output
+					# fileprint_fit(log,Tparams_high,"Temperature (High)")
+
+				# leg_T = ax1.legend(loc="upper right",title='temperatures')
+				# ax2.add_artist(leg_T)
+				# draw()
+				
+
+				# TEMPERATUR FIT -------------------------------------------------------------------------------------------------------------
+				print(line)
+				print("temperature fit ...")
+				
+				#initialize fit variables for temperature -----------------------------------------------------------------------------------------				
+				Tparams_down = Parameters()
+				Tparams_down.add('amp', value=measurement_info['amp'],min=0.0)
+				Tparams_down.add('freq', value=measurement_info['freq'], min=1e-5, max=0.2)
+				Tparams_down.add('phase', value=0.1)
+				Tparams_down.add('offs', value=measurement_info['offs'], min=0.0)
+				Tparams_down.add('slope', value=measurement_info['heat_rate'])
+				
 				#check when ramp runs into T_Limit_H
 				if max(Tnew[:,0]) < measurement_info['T_Limit_H']:
 					maxT_ind = Tnew[:,0]>max(Tnew[:,0])-1
@@ -948,68 +985,58 @@ else:
 				limit = len(Tnew[:,0])-number_of_lim-1-start_index
 
 				max_Temp = tnew[limit]*measurement_info['heat_rate']+measurement_info['offs']
-				T_perioden = int(tnew[limit]/(1/measurement_info['freq']))
+				T_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
 				tmax = tnew[limit]
 				satzlaenge = limit/T_perioden
-
-				print line
-				print "...fitting"
-				print line
-
-				#prepare output log
-				log = open(date+"_"+samplename+"_"+T_profile+"_T-Fit.txt", 'w+')
 				
-				#Temperature Fit -------------------------------------------------------------------------------------
-				Tresult_down, Tparams_down = fit(tnew, Tnew[:,0],start_index,limit,1,measurement_info, True, True)
-				#correction of phase and amplitudes
-				Tparams_down = amp_phase_correction(Tparams_down)
-				#extract params dict to lists
-				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
-				#Fit-Plot
-				ax1.plot(tnew[start_index:limit], sinfunc(Tparams_down, tnew[start_index:limit]), color=temp_color,linestyle='-', label='T-Fit')
-				draw()
-				#absolute T_high Error
-				total_Terror_down = abs(Tparams_down['amp'].stderr/Tparams_down['amp'].value)+abs(Tparams_down['phase'].stderr/Tparams_down['phase'].value)+abs(Tparams_down['freq'].stderr/Tparams_down['freq'].value)+abs(Tparams_down['offs'].stderr/Tparams_down['offs'].value)+abs(Tparams_down['slope'].stderr/Tparams_down['slope'].value)
-				#file output
-				fileprint_fit(log,Tparams_down,"Temperature (Down)")
+				#------------------------------------------------------------------------------------------------------------------------------
+				#perform partial fit
+				for i in arange(1,T_perioden):
+					start = start_index+int((i*satzlaenge)-satzlaenge)
+					ende = start_index+int(i*satzlaenge)
 				
-
-				#for top temperature-------------------
-				if temp_filter_flag == False:
-					Tresult_high, Tparams_high = fit(tnew[:-5], Tnew[:,1], start_index, limit,1, measurement_info, True, True)
-					#correction of phase and amplitude
-					Tparams_high = amp_phase_correction(Tparams_high)
+					#fit of sin
+					Tresult_sin = minimize(sinfunc, Tparams_down, args=(tnew[start:ende], Tnew[start:ende,0]), method="leastsq")
+				
+					#console status
+					sys.stdout.write("\rProgress: %d/%d" % (i,T_perioden-1))
+					sys.stdout.flush()
+					
+					#fit correction (amp/phase)
+					Tparams_down = amp_phase_correction(Tparams_down)	
+					
+					#plot
+					ax1.plot(tnew[start:ende], sinfunc(Tparams_down, tnew[start:ende]), color=temp_color, linestyle='-')
+					
 					#extract params dict to lists
-					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
-					#plot of second fit
-					ax1.plot(tnew[start_index:-5], sinfunc(Tparams_high, tnew[start_index:-5]), color=volt_color,linestyle='-', label='T-Fit (top)')
-					draw()
-					#absolute T_high Error
-					total_Terror_high = abs(Tparams_high['amp'].stderr/Tparams_high['amp'].value)+abs(Tparams_high['phase'].stderr/Tparams_high['phase'].value)+abs(Tparams_high['freq'].stderr/Tparams_high['freq'].value)+abs(Tparams_high['offs'].stderr/Tparams_high['offs'].value)+abs(Tparams_high['slope'].stderr/Tparams_high['slope'].value)
-					#file output
-					fileprint_fit(log,Tparams_high,"Temperature (High)")
-
-				leg_T = ax1.legend(loc="upper right",title='temperatures')
-				ax2.add_artist(leg_T)
-				draw()
+					Tfit_down_temp, Terror_down_temp = extract_fit_relerr_params(Tparams_down)
+					if i==1:
+						Tfit_down = array([Tfit_down_temp])
+						Terror_down = array([Terror_down_temp])
+						Tresults_down = [Tresult_sin]					#save lmfit minizimer objects for future purpose ... maybe
+					else:
+						Tfit_down = append(Tfit_down,[array(Tfit_down_temp)],axis=0)
+						Terror_down = append(Terror_down,[array(Terror_down_temp)],axis=0)
+						Tresults_down.append(Tresult_sin)
 				
-				log.close()
-			      
-				print "Temperature ... done!"
-				print "Current..."
-
-				#Current Fit -----------------------------------------------------------------------------------------
-				#initialize fit variables
+					Tparams_down['phase'].value=Tfit_down[i-1,2]
+					Tparams_down['phase'].vary=False
+					# Tparams_down['freq'].vary=False
+				
+				print("\n")
+				print(line)
+				
+				# CURRENT FIT -------------------------------------------------------------------------------------------------------------
+				print("current fit ...")
+				
+				#initialize fit variables for current -----------------------------------------------------------------------------------------
 				I_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
 				satzlaenge = limit/I_perioden
-
-				Ifit = zeros((1,5))
-				Ierror = zeros((1,5))
 				
 				Iparams = Parameters()
 				Iparams.add('amp', value=1e-11)
-				Iparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.2, vary=False)
-				Iparams.add('phase', value=1.0)
+				Iparams.add('freq', value=Tfit_down[0,1], min=1e-5, max=0.2,vary=False)
+				Iparams.add('phase', value=0.1)
 				Iparams.add('offs', value=1e-10)
 				Iparams.add('slope', value=1e-10)
 				
@@ -1017,7 +1044,8 @@ else:
 				Iparams_lin.add('a', value=1e-10)
 				Iparams_lin.add('b', value=0.0)
 
-				#perform partial fits
+				#------------------------------------------------------------------------------------------------------------------------------
+				#perform PARTIAL FITS
 				for i in arange(1,I_perioden):
 					start = start_index+int((i*satzlaenge)-satzlaenge)
 					ende = start_index+int(i*satzlaenge)
@@ -1038,9 +1066,9 @@ else:
 					if Iresult_lin.redchi < 2*Iresult_sin.redchi and Ifit_counter < Ifit_counter_limit:
 						
 						Iparams['amp'].value = (Ifit_counter)*1e-12
-						Iparams['phase'].value = Tfit_down[2]-pi/2
-						#Iparams['offs'].value = (Ifit_counter**2)*1e-10
-						#Iparams['slope'].value = (Ifit_counter**2)*1e-10
+						Iparams['phase'].value = Tfit_down[2,2]-pi/2
+						Iparams['offs'].value = (Ifit_counter**2)*1e-10
+						Iparams['slope'].value = (Ifit_counter**2)*1e-10
 						
 						Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
 						
@@ -1070,7 +1098,7 @@ else:
 
 					#calculate phase difference
 					if single_crystal==False:
-						phi_T = Tfit_down[2]
+						phi_T = Tfit_down[i-1,2]
 						phi_I = Ifit[i-1,2]
 						
 						# if abs(phi_I) > abs(phi_T):
@@ -1080,25 +1108,25 @@ else:
 						
 						phasediff = phase_correction(phi_T-phi_I)
 					else:
-						phasediff = -pi/2
+						phasediff = -pi/2					
 
 					#NonPyroStrom---------------------------------------------------------------------------
 					#m=magenta (TSC-Strom)
 					
-					#Plot
+					# Plot
 					nonpyroparams = Parameters()
 					if polarityI == "neg":
 						nonpyroparams.add('amp', value=-1*abs(Ifit[i-1,0]*-cos(phasediff)))
 					else:
 						nonpyroparams.add('amp', value=abs(Ifit[i-1,0]*-cos(phasediff)))
-					nonpyroparams.add('freq', value=Tfit_down[1])
-					nonpyroparams.add('phase', value=Tfit_down[2])
+					nonpyroparams.add('freq', value=Ifit[i-1,1])
+					nonpyroparams.add('phase', value=Tfit_down[i-1,2])
 					nonpyroparams.add('offs', value=Ifit[i-1,3])
 					nonpyroparams.add('slope', value=Ifit[i-1,4])
 					nonpyroparams = amp_phase_correction(nonpyroparams)
 					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]), color=np_color,linestyle='-')
 					
-					#Calculating Data from Fit - TSC
+					# Calculating Data from Fit - TSC
 					if calculate_data_from_fit_flag == True:
 						TSC = (array([tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende])])).T		#transpose!
 						if i==1:
@@ -1109,17 +1137,17 @@ else:
 					#Pyrostrom + Koeff.---------------------------------------------------------------------
 					#c=cyan (Pyrostrom)
 					
-					#Plot
+					# Plot
 					pyroparams = Parameters()
 					pyroparams.add('amp', value=Ifit[i-1,0]*-sin(phasediff))
-					pyroparams.add('freq', value=Tfit_down[1])
-					pyroparams.add('phase', value=(Tfit_down[2]+pi/2))
+					pyroparams.add('freq', value=Ifit[i-1,1])
+					pyroparams.add('phase', value=(Tfit_down[i-1,2]+pi/2))
 					pyroparams.add('offs', value=Ifit[i-1,3])
 					pyroparams.add('slope', value=Ifit[i-1,4])
 					pyroparams = amp_phase_correction(pyroparams)
 					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), color=p_color,linestyle='-')
 					
-					#Calculating Data from Fit - Pyro
+					# Calculating Data from Fit - Pyro
 					if calculate_data_from_fit_flag == True:
 						pyro = (array([tnew[start:ende], sinfunc(pyroparams, tnew[start:ende])])).T		#transpose!
 						if i==1:
@@ -1127,20 +1155,20 @@ else:
 						else:
 							I_pyro = append(I_pyro, pyro, axis=0)
 					
-					#Calc p
+					# Calc p
 					time = mean(tnew[start:ende])
-					Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
-					p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
-					p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[4]))												# p (Byer-Roundy)
+					Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[i-1,4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[i-1,4])+Tfit_down[i-1,3]	# Average Temp. in Interval
+					p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[i-1,0]*2*pi*abs(Tfit_down[i-1,1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
+					p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[i-1,4]))												# p (Byer-Roundy)
 					perror = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)				# Error of p
 					phasediff = degrees(phasediff)																							# Phasediff. (in deg)
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*-sin(radians(phasediff)))/(Ifit[i-1,0]*cos(radians(phasediff))))	# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])																					# mean I in Interval
 					Chisqr = Iresults[i-1].chisqr																								# Chi square in Interval
 
-					#wrinting temp list
+					# wrinting temp list
 					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, Chisqr, perror]
-					#append list to array 
+					# append list to array 
 					if i==1:
 						p = array([p_temp])
 						p_error = array([perror])
@@ -1159,8 +1187,10 @@ else:
 				
 				header_string = "Amp [I]\t\t\tFreq [Hz]\t\t\tPhase [rad]\t\t\tOffset [A]\t\t\tSlope [A/s]\t\t\tAmp_Err [A]\t\t\tFreq_Err [Hz]\t\t\tPhase_Err [rad]\t\t\tOffs_Err [A]\t\t\tSlope_Err [A/s]"
 				savetxt(date+"_"+samplename+"_"+T_profile+"_I-Fit.txt",hstack([Ifit,Ierror]), delimiter="\t", header=header_string)
-				print "\nCurrent ... done!"
-				print line
+				savetxt(date+"_"+samplename+"_"+T_profile+"_T-Fit.txt",hstack([Tfit_down,Terror_down]), delimiter="\t", header=header_string)
+				
+				print("\n")
+				print(line)
 
 				#Plotting p(T)-----------------------------------------------------------------------------------------------------------
 				bild2=figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
