@@ -26,14 +26,14 @@ from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-upper_I_lim = 1e-3                                  				#limitation of current in plot and fit (for spikes, ...)
+upper_I_lim = 3e-6                                  				#limitation of current in plot and fit (for spikes, ...)
 temp_filter_flag = True                          				#True = no plot/fit of second temperature (top PT100)
 current_filter_flag = True
 calculate_data_from_fit_flag = False			        	#True = saving fit as data points to txt file for I_pyro and I_TSC
 p_error_log_flag = True										#True: p_SG_error array will be written to txt, else not
 PS_flag = False													#flag if PS should be calculated from p(T)
 BR_flag = False													#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 200                                					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 200                               					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                              				#for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
 fit_periods = 1														#how many periods have to fitted with sine wave in SinLinRamp
@@ -945,12 +945,12 @@ else:
 				else:
 					maxT_ind = Tnew[:,0]>(measurement_info['T_Limit_H']-1)
 				number_of_lim = maxT_ind.tolist().count(True)
-				limit = len(Tnew[:,0])-number_of_lim-1
+				limit = len(Tnew[:,0])-number_of_lim-1-start_index
 
 				max_Temp = tnew[limit]*measurement_info['heat_rate']+measurement_info['offs']
 				T_perioden = int(tnew[limit]/(1/measurement_info['freq']))
 				tmax = tnew[limit]
-				satzlaenge = (limit-start_index)/T_perioden
+				satzlaenge = limit/T_perioden
 
 				print line
 				print "...fitting"
