@@ -30,7 +30,6 @@ upper_I_lim = 3e-6                                  				#limitation of current i
 temp_filter_flag = True                          				#True = no plot/fit of second temperature (top PT100)
 current_filter_flag = True
 calculate_data_from_fit_flag = False			        	#True = saving fit as data points to txt file for I_pyro and I_TSC
-p_error_log_flag = True										#True: p_SG_error array will be written to txt, else not
 PS_flag = False													#flag if PS should be calculated from p(T)
 BR_flag = False													#Flag for ByerRoundy Plot (False=not plotting)
 start_index = 200                               					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
@@ -1294,10 +1293,6 @@ else:
 				if calculate_data_from_fit_flag == True:
 					header_string = "time [s]\t\t\tI_TSC [A]\t\t\tI_pyro [A]"
 					savetxt(date+"_"+samplename+"_"+T_profile+"_"+"DataFromFit.txt", vstack([I_TSC[:,0], I_TSC[:,1], I_pyro[:,1]]).T, delimiter="\t", header=header_string)
-				
-				if p_error_log_flag == True:
-					header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG_error [C/Km2]"
-					savetxt(date+"_"+samplename+"_"+T_profile+"_"+"p_error.txt", vstack([p[:,0], p[:,1], p_error]).T, delimiter="\t", header=header_string)
 
 			else:
 				saving_figure(bild1)
@@ -1566,7 +1561,7 @@ else:
 					time = mean(tnew[start:ende])
 					
 					#wrinting temp list
-					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, Chisqr]
+					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, Chisqr, perror]
 					#append list to array 
 					if i==1:
 						p = array([p_temp])
@@ -1655,16 +1650,12 @@ else:
 				
 				#writing log files
 				print "...writing log files"				
-				header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi"
+				header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\t\tp_err [C/Km2]\t"
 				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", p, delimiter="\t", header=header_string)
 				
 				if calculate_data_from_fit_flag == True:
 					header_string = "time [s]\t\t\tI_TSC [A]\t\t\tI_pyro [A]"
 					savetxt(date+"_"+samplename+"_"+T_profile+"_"+"DataFromFit.txt", vstack([I_TSC[:,0], I_TSC[:,1], I_pyro[:,1]]).T, delimiter="\t", header=header_string)
-			
-				if p_error_log_flag == True:
-					header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG_error [C/Km2]"
-					savetxt(date+"_"+samplename+"_"+T_profile+"_"+"p_error.txt", vstack([p[:,0], p[:,1], p_error]).T, delimiter="\t", header=header_string)
 					
 				#save figure
 				saving_figure(bild1)
