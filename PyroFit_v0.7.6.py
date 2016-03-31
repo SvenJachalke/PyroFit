@@ -854,6 +854,10 @@ else:
 				nonpyroparams.add('slope', value=Ifit[4])
 				nonpyroparams = amp_phase_correction(nonpyroparams)
 				ax2.plot(tnew[start_index:], sinfunc(nonpyroparams, tnew[start_index:]), color=np_color,linestyle='-',label='non-pyro')
+				
+				#Calculating Data from Fit - Pyro
+				if calculate_data_from_fit_flag == True:
+						I_TSC = (array([tnew[start_index:], sinfunc(nonpyroparams, tnew[start_index:])])).T		#transpose!
 
 				#Pyrostrom
 				#c=cyan (Pyro)
@@ -866,6 +870,10 @@ else:
 				pyroparams.add('slope', value=Ifit[4])
 				pyroparams = amp_phase_correction(pyroparams)
 				ax2.plot(tnew[start_index:], sinfunc(pyroparams, tnew[start_index:]), color=p_color,linestyle='-',label='pyro')
+				
+				#Calculating Data from Fit - Pyro
+				if calculate_data_from_fit_flag == True:
+					I_pyro = (array([tnew[start_index:], sinfunc(pyroparams, tnew[start_index:])])).T		#transpose!
 
 				#legend and information box
 				box_text = r"$A$:"+"\t     "+format(area,'.3e')+r" $\mathrm{m^2}$"+"\n"+ r"$I_{\mathrm{Amp}}$:"+"\t"+format(Ifit[0],'.3e')+r" A"+"\n"+ r"$T_{\mathrm{Amp}}$:"+"\t"+format(Tfit_down[0],'.3f')+r" K"+"\n"+r"$f$:"+"\t     "+format(Tfit_down[1]*1000,'.3f')+" mHz"+"\n"+r"$\phi$:"+"\t\t"+format(degrees(phasediff),'.3f')+"$^{\circ}$"+"\n"+r"$p$:"+"\t     "+format(pyro_koeff*1e6,'.3f')+r" $\mathrm{\mu C/Km^2}$"
@@ -906,6 +914,9 @@ else:
 				log.close()
 				header_string = "#area [m2]\t\t\tI-p [A]\t\t\tI-TSC [A]\t\t\tphasediff [deg]\t\t\tpyroCoeff [yC/Km2]\t\t\tp_error [µC/Km2]\t\t\tB_T [A/K]"
 				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", [area,Ip,Inp,degrees(phasediff),pyro_koeff,perror, fabs(Inp/Tfit_down[1])], delimiter="\t", header=header_string)
+				if calculate_data_from_fit_flag == True:
+					header_string = "time [s]\t\t\tI_TSC [A]\t\t\tI_pyro [A]"
+					savetxt(date+"_"+samplename+"_"+T_profile+"_"+"DataFromFit.txt", vstack([I_TSC[:,0], I_TSC[:,1], I_pyro[:,1]]).T, delimiter="\t", header=header_string)
 
 
 			else:
