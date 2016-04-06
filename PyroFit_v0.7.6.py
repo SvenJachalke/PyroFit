@@ -26,13 +26,13 @@ from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-upper_I_lim = 3e-6                                  				#limitation of current in plot and fit (for spikes, ...)
+upper_I_lim = 1e-3                                  				#limitation of current in plot and fit (for spikes, ...)
 temp_filter_flag = True                          				#True = no plot/fit of second temperature (top PT100)
 current_filter_flag = True
 calculate_data_from_fit_flag = False			        	#True = saving fit as data points to txt file for I_pyro and I_TSC
 PS_flag = False													#flag if PS should be calculated from p(T)
 BR_flag = False													#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 200                               					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 200	                            					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False                              				#for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5
 fit_periods = 1														#how many periods have to fitted with sine wave in SinLinRamp
