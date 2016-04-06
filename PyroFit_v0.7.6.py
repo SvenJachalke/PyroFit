@@ -37,14 +37,17 @@ single_crystal = False                              				#for single crystals pha
 interpolation_step = 0.5
 fit_periods = 1														#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
-
 Ifit_counter_limit = 5												#repeat number when I-fit insufficient
 
 warnings.filterwarnings("ignore")								#ignores warnings
 ion()
 
-STOFormation = True
-
+# Altered setting for Fit -------------------------------------------------------------------------------------------------------------
+Formation = True													#If TRUE an OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
+																			#Used for SrTiO3 Formation (under electric field)
+PartWiseTFit = False												#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
+																			#as the current (same interval!) and not over the whole range
+																			
 # General Settings----------------------------------------------------------------------------------------------------------
 # Plot Settings-------------------------------------------------------------------------------------------------------------
 matplotlib.rcParams['legend.fancybox'] = True       	#plot fancy box (round edges)
@@ -2057,7 +2060,7 @@ else:
 
 			
 			
-			if STOFormation == True:
+			if Formation == True:
 				print('formation measurement set true!')
 				
 				#area for pyroel. coefficent
@@ -2345,14 +2348,7 @@ else:
 				#writing log files
 				print line
 				print "...writing log files"				
-				header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\t\tp_err [C/Km2]\t"
-				
-				if PS_flag == True:
-					
-					for k in range(number_of_maxima):
-						pol_string = "\t\tPS [C/m2] - TC %.2fK" % p[TC_index_list[k],1]
-						header_string = header_string + pol_string 
-				
+				header_string = "time [s]\t\t\tTemp [K]\t\t\tp_SG [C/Km2]\t\t\tp_BR [C/Km2],\t\t\tPhasediff [deg]\t\t\tp/TSC-ratio\t\t\tMean I [A]\t\t\tRed Chi\t\t\t\tp_err [C/Km2]\t"			
 				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", p, delimiter="\t", header=header_string)
 				
 				if calculate_data_from_fit_flag == True:
