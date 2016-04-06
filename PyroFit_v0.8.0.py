@@ -43,7 +43,7 @@ warnings.filterwarnings("ignore")								#ignores warnings
 ion()
 
 # Altered setting for Fit -------------------------------------------------------------------------------------------------------------
-Formation = True													#If TRUE an OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
+Formation = False													#If TRUE an OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
 																			#Used for SrTiO3 Formation (under electric field)
 PartWiseTFit = False												#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
 																			#as the current (same interval!) and not over the whole range
@@ -2109,7 +2109,7 @@ else:
 	#HighVoltage always on
 	elif measurement_info['hv_mode'] == "On":
 		#---------------------------------------------------------------------------------------------------------------------
-		if T_profile == "Thermostat" or T_profile == "SineWave" or T_profile == "SineWave+LinRamp" or T_profile == "TriangleHat":
+		if T_profile == "Thermostat" or T_profile == "SineWave" or T_profile == "SineWave+LinRamp" or T_profile == "TriangleHat" or T_profile == "LinearRamp":
 			print "Mode:\t\t"+T_profile
 
 			#Interpolation and plotting of data ----
@@ -2128,8 +2128,6 @@ else:
 			# bild.tight_layout()
 			# show()
 
-			
-			
 			if Formation == True:
 				print('formation measurement set true!')
 				
