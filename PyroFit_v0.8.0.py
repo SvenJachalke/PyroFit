@@ -85,8 +85,11 @@ area_a5 = 1.4668e-5						            			#for 5x5mm samples, e.g. SrTiO3, ...
 #areas from older skript versions
 area_d13_old = 1.3994e-4										#for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
 area_d15_old = 1.761e-4										#for single crystals with d=15mm
-#costums
-custom = pi/4.0*(14.0/1000)**2				        		#custorm values which has to be stored but no included in the list above
+
+#costums (in m2)
+custom = 1				        									#custorm values which has to be stored but no included in the list above
+#custom area_error (in m2)
+custom_error = 0.000											#area error for custom											
 
 
 # Functions-----------------------------------------------------------------------------------------------------------------
@@ -548,8 +551,8 @@ def get_area():
 		return area_d5, 0.0082*area_d5
 	elif input == "PMNPT":
 		return 1.65e-4, 1.35292e-6			#area of PMN-PT samples with SputterShadowMaskContacts
-	elif input == "Z":						#custom defined values
-		return custom, 0.0082*custom
+	elif input == "CUSTOM":						#custom defined values
+		return custom, custom_error
 	else:
 		return float(input), 0.0082*float(input)	#direct area input
 def amp_phase_correction(fit_dict):
