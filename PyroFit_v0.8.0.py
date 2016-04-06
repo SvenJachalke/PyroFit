@@ -87,7 +87,7 @@ area_d13_old = 1.3994e-4										#for large Edwards shadow mask (d=13,...mm), e
 area_d15_old = 1.761e-4										#for single crystals with d=15mm
 
 #costums (in m2)
-custom = 1				        									#custorm values which has to be stored but no included in the list above
+custom = 1e-5			        									#custorm values which has to be stored but no included in the list above
 #custom area_error (in m2)
 custom_error = 0.000											#area error for custom											
 
@@ -1259,7 +1259,6 @@ else:
 				ax3=subplot(221)
 				ax3.set_autoscale_on(True)
 				ax3.set_xlim(p[0,1],p[-1,1])
-				ax3.set_ylim(min(p[:,2])*1e6-50, max(p[:,2])*1e6+50)
 				ax3.set_xlabel('Temperature (K)',size=label_size)
 				ax3.set_ylabel(u"p (µC/Km²)",color=temp_color,size=label_size)
 
@@ -1683,7 +1682,6 @@ else:
 				ax3=subplot(221)
 				ax3.set_autoscale_on(True)
 				ax3.set_xlim(p[0,1],p[turning_p_index,1])
-				ax3.set_ylim(min(p[:,2])*1e6-50, max(p[:,2])*1e6+50)
 				ax3.set_xlabel('Temperature ()K)',size=label_size)
 				ax3.set_ylabel(u"p (µC/Km²)",color=temp_color,size=label_size)
 
