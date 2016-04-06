@@ -1027,6 +1027,9 @@ else:
 					
 						Tparams_down['phase'].value=Tfit_down[i-1,2]
 						Tparams_down['phase'].vary=False
+					
+					header_string = "Amp [I]\t\t\tFreq [Hz]\t\t\tPhase [rad]\t\t\tOffset [A]\t\t\tSlope [A/s]\t\t\tAmp_Err [A]\t\t\tFreq_Err [Hz]\t\t\tPhase_Err [rad]\t\t\tOffs_Err [A]\t\t\tSlope_Err [A/s]"
+					savetxt(date+"_"+samplename+"_"+T_profile+"_T-Fit-partwise.txt",hstack([Tfit_down,Terror_down]), delimiter="\t", header=header_string)
 				
 				# in case of whole range fit of T -----------------------------------------------------------------------------------------				
 				else:
