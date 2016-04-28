@@ -811,7 +811,7 @@ else:
 					phasediff = -pi/2
 
 				pyro_koeff = (Ifit[0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))		
-				perror = p_error(Tfit_down, Terror_low, Ifit, Ierror, phasediff, area, area_error)
+				perror = pyro_koeff*rel_err(Tfit_down,Terror_down,Ifit,Ierror,area, area_error,phasediff,Xsigma=sigma)
 
 				#Plot Ip and ITSC------------------------------------------------------------------------------------------
 				#NonPyroStrom
@@ -1183,8 +1183,6 @@ else:
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[4]))												# p (Byer-Roundy)
 					
 					perror = p_SG * rel_err(Tfit_down,Terror_down,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
-					
-					# perror = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)				# Error of p
 					phasediff = degrees(phasediff)																							# Phasediff. (in deg)
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*-sin(radians(phasediff)))/(Ifit[i-1,0]*cos(radians(phasediff))))	# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])																					# mean I in Interval
@@ -1600,13 +1598,13 @@ else:
 						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down_heat[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down_heat[4])+Tfit_down_heat[3]	# Average Temp. in Interval
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_heat[0]*2*pi*abs(Tfit_down_heat[1]))
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_heat[4]))
-						perror = p_error_i(Tfit_down_heat, Terror_down_heat, Ifit, Ierror, phasediff, area, area_error, i)
+						perror = p_SG * rel_err(Tfit_down_heat,Terror_down_heat,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
 						turning_p_index = i
 					else:
 						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down_cool[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down_cool[4])+Tfit_down_cool[3]	# Average Temp. in Interval
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_cool[0]*2*pi*abs(Tfit_down_cool[1]))
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_cool[4]))
-						perror = p_error_i(Tfit_down_cool, Terror_down_cool, Ifit, Ierror, phasediff, area, area_error, i)
+						perror = p_SG * rel_err(Tfit_down_cool,Terror_down_cool,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)					
 					phasediff = degrees(phasediff)					# Phasediff.
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))		# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])
@@ -2291,7 +2289,7 @@ else:
 					Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
 					p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 					p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[4]))												# p (Byer-Roundy)
-					perror = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)				# Error of p
+					perror = p_SG * rel_err(Tfit_down,Terror_down,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
 					phasediff = degrees(phasediff)																							# Phasediff. (in deg)
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*-sin(radians(phasediff)))/(Ifit[i-1,0]*cos(radians(phasediff))))	# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])																					# mean I in Interval
