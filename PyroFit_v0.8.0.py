@@ -38,6 +38,7 @@ interpolation_step = 0.5
 fit_periods = 1														#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
 Ifit_counter_limit = 5												#repeat number when I-fit insufficient
+sigma = 3
 
 warnings.filterwarnings("ignore")								#ignores warnings
 ion()
@@ -478,58 +479,16 @@ def fit(x, y, start, end, slice, start_parameters, vary_freq=True, heating=True)
 	result = minimize(sinfunc, Params, args=(x[start:end:slice], y[start:end:slice]), method="leastsq")
 
 	return result, Params
-
-def p_error(Tfit, Terror, Ifit, Ierror, phasediff, area, area_error):
+def rel_err(Tfit, Terror, Ifit, Ierror, area, area_error, phasediff, Xsigma=1):
 	"""
-	Culculates the error for the pyroelectric coefficient from all fitted values
-	input:	temp fit [list]
-			temp error [list]
-			curr fit [list]
-			curr error [list]
-			phasediff [float]
-			area [float]
-			area error [float]
-	output: p_error [float]
-	"""
-	err_A_I = (sin(phasediff)/(area * Tfit[0] * Tfit[1])) * Ierror[0]
-	err_phi = (Ifit[0]*cos(phasediff)/(area * Tfit[0] * Tfit[1])) * (Ierror[1]+Terror[1])
-	err_area = -(Ifit[0]*sin(phasediff)/((area**2)*Tfit[0] * Tfit[1])) * area_error
-	err_A_T = -(Ifit[0]*sin(phasediff)/(area * (Tfit[0]**2) * Tfit[1])) * Terror[0]
-	err_w_T = -(Ifit[0]*sin(phasediff)/(area * Tfit[0] * (Tfit[1]**2))) * Terror[1]
-
-	p_ges_error = abs(err_A_I)+abs(err_phi)+abs(err_area)+abs(err_A_T)*abs(err_w_T)
-
-	return p_ges_error
-def p_error_i(Tfit, Terror, Ifit, Ierror, phasediff, area, area_error, i):
-	"""
-	Calculates error of the pyroelectric coefficienct for partwise fits
-	input:	temp fit [list]
-			temp error [list]
-			curr fit [list]
-			curr error [list]
-			phasediff [float]
-			area [float]
-			area error [float]
-			index of fit [int]
-	output: p_error [float]
+	Calculates relative maximum error 
 	"""
 	
-	if PartWiseTFit == False:
-		err_A_I = (sin(phasediff)/(area * Tfit[0] * Tfit[1])) * Ierror[i-1,0]
-		err_phi = (Ifit[i-1,0]*cos(phasediff)/(area * Tfit[0] * Tfit[1])) * (Ierror[i-1,1]+Terror[1])
-		err_area = -(Ifit[i-1,0]*sin(phasediff)/((area**2)*Tfit[0] * Tfit[1])) * area_error
-		err_A_T = -(Ifit[i-1,0]*sin(phasediff)/(area * (Tfit[0]**2) * Tfit[1])) * Terror[0]
-		err_w_T = -(Ifit[i-1,0]*sin(phasediff)/(area * Tfit[0] * (Tfit[1]**2))) * Terror[1]
-	else:
-		err_A_I = (sin(phasediff)/(area * Tfit[i-1,0] * Tfit[i-1,1])) * Ierror[i-1,0]
-		err_phi = (Ifit[i-1,0]*cos(phasediff)/(area * Tfit[i-1,0] * Tfit[i-1,1])) * (Ierror[i-1,1]+Terror[i-1,1])
-		err_area = -(Ifit[i-1,0]*sin(phasediff)/((area**2)*Tfit[i-1,0] * Tfit[i-1,1])) * area_error
-		err_A_T = -(Ifit[i-1,0]*sin(phasediff)/(area * (Tfit[i-1,0]**2) * Tfit[i-1,1])) * Terror[i-1,0]
-		err_w_T = -(Ifit[i-1,0]*sin(phasediff)/(area * Tfit[i-1,0] * (Tfit[i-1,1]**2))) * Terror[i-1,1]
+	phasediff_error = Terror[2]+Ierror[2]
+	# rel err = dp/p .... I_Amp	phi	A	T_Amp	f	
+	rel_err = Xsigma*(abs(Ierror[0]/Ifit[0]) + abs(phasediff_error/(tan(phasediff))) + abs(area_error/area) + abs(Terror[0]/Tfit[0]) + abs(Terror[1]/Tfit[1]))
 		
-	p_ges_error = abs(err_A_I)+abs(err_phi)+abs(err_area)+abs(err_A_T)*abs(err_w_T)
-
-	return p_ges_error
+	return rel_err
 def get_area():
 	"""
 		function to get the active area of several pyroelectric materials, depending which mask was used
@@ -1222,7 +1181,10 @@ else:
 						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[4]))												# p (Byer-Roundy)
-					perror = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)				# Error of p
+					
+					perror = p_SG * rel_err(Tfit_down,Terror_down,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
+					
+					# perror = p_error_i(Tfit_down, Terror_down, Ifit, Ierror, phasediff, area, area_error, i)				# Error of p
 					phasediff = degrees(phasediff)																							# Phasediff. (in deg)
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*-sin(radians(phasediff)))/(Ifit[i-1,0]*cos(radians(phasediff))))	# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])																					# mean I in Interval
