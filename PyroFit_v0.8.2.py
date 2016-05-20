@@ -88,9 +88,9 @@ area_d13_old = 1.3994e-4										#for large Edwards shadow mask (d=13,...mm), e
 area_d15_old = 1.761e-4										#for single crystals with d=15mm
 
 #costums (in m2)
-custom = 1e-5			        									#custorm values which has to be stored but no included in the list above
+custom = 6.419143e-5			        						#custorm values which has to be stored but no included in the list above
 #custom area_error (in m2)
-custom_error = 0.000											#area error for custom											
+custom_error = 2.992876e-7									#area error for custom											
 
 
 # Functions-----------------------------------------------------------------------------------------------------------------
@@ -1177,12 +1177,13 @@ else:
 						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[i-1,4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[i-1,4])+Tfit_down[i-1,3]	# Average Temp. in Interval
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[i-1,0]*2*pi*abs(Tfit_down[i-1,1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[i-1,4]))												# p (Byer-Roundy)
+						perror = p_SG * rel_err(Tfit_down[i-1],Terror_down[i-1],Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
 					else:
 						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[4]))												# p (Byer-Roundy)
-					
-					perror = p_SG * rel_err(Tfit_down,Terror_down,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
+						perror = p_SG * rel_err(Tfit_down,Terror_down,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
+						
 					phasediff = degrees(phasediff)																							# Phasediff. (in deg)
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*-sin(radians(phasediff)))/(Ifit[i-1,0]*cos(radians(phasediff))))	# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])																					# mean I in Interval
