@@ -1403,8 +1403,8 @@ else:
 				#check when ramp runs into T_Limit_H
 				turning_point_index = argmax(Tnew[:,0])
 				end_point_index = argmin(Tnew[turning_point_index:,0])+turning_point_index		#calculate end_point when measurement time is too long cooling ramp^
-				T_perioden = int(tnew[-1]/(1/measurement_info['freq']))
-				satzlaenge = (len(tnew)-1-start_index)/T_perioden
+				T_perioden = int(tnew[end_point_index-start_index]/(fit_periods/measurement_info['freq']))
+				satzlaenge = len(tnew[:end_point_index-start_index])/T_perioden
 				
 				#Temp fit/plot for heating-----------------------------------------------------------------------------
 				Tresult_down_heat, Tparams_down_heat = fit(tnew, Tnew[:,0],start_index,turning_point_index,1,measurement_info,True,True)
@@ -1466,8 +1466,8 @@ else:
 				print "Temperature ... done!"
 
 				#Current Fit -------------------------------------------------------------------------------------
-				I_perioden = int(tnew[end_point_index]/(fit_periods/measurement_info['freq']))
-				satzlaenge = len(tnew[:end_point_index])/I_perioden
+				I_perioden = int(tnew[end_point_index-start_index]/(fit_periods/measurement_info['freq']))
+				satzlaenge = len(tnew[:end_point_index-start_index])/I_perioden
 				
 				Ifit = zeros((1,5))
 				Ierror = zeros((1,5))
