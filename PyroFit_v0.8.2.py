@@ -1187,10 +1187,10 @@ else:
 					phasediff = degrees(phasediff)																							# Phasediff. (in deg)
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*-sin(radians(phasediff)))/(Ifit[i-1,0]*cos(radians(phasediff))))	# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])																					# mean I in Interval
-					Chisqr = Iresults[i-1].chisqr																								# Chi square in Interval
+					IAmp_error = Iresults[i-1].chisqr/(Ifit[i-1,0]**2)		# Chi Square / I_amp^2																						# Chi square in Interval
 
 					#wrinting temp list
-					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, Chisqr, perror]
+					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, IAmp_error, perror]
 					#append list to array 
 					if i==1:
 						p = array([p_temp])
@@ -1244,7 +1244,7 @@ else:
 				ax6.set_xlim(ax3.get_xbound())
 				ax6.grid(b=None, which='major', axis='both', color='grey')
 				ax6.set_xlabel('Temperature (K)',size=label_size)
-				ax6.set_ylabel(r"$X^2$",color=np_color,size=label_size)
+				ax6.set_ylabel(r"$X^2 / A_I^2$",color='c',size=label_size)
 				ax6.semilogy(p[:,1], p[:,7], color=np_color,marker=".",linestyle="", label=r"$X^2$")
 
 				#Phasediff---------------------------------------------------------------
@@ -1609,11 +1609,11 @@ else:
 					phasediff = degrees(phasediff)					# Phasediff.
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))		# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])
-					Chisqr = Iresults[i-1].chisqr								# red Chi in Interval
+					IAmp_error = Iresults[i-1].chisqr/(Ifit[i-1,0]**2)		# Chi Square / I_amp^2
 					time = mean(tnew[start:ende])
 					
 					#wrinting temp list
-					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, Chisqr, perror]
+					p_temp = [time, Temp, p_SG, p_BR, phasediff, Ip_TSC_ratio, meanI, IAmp_error, perror]
 					#append list to array 
 					if i==1:
 						p = array([p_temp])
@@ -1671,7 +1671,7 @@ else:
 				ax6.set_xlim(ax3.get_xbound())
 				ax6.grid(b=None, which='major', axis='both', color='grey')
 				ax6.set_xlabel('Temperature (K)',size=label_size)
-				ax6.set_ylabel(r"$X^2$",color='c',size=label_size)
+				ax6.set_ylabel(r"$X^2 / A_I^2$",color='c',size=label_size)
 				ax6.semilogy(p[:turning_p_index,1], p[:turning_p_index,7], color=np_color,marker=".",linestyle="", label="heating")
 				ax6.semilogy(p[turning_p_index:,1], p[turning_p_index:,7], color=np_color,marker="x",linestyle="", label="cooling")
 
