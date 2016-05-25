@@ -809,6 +809,13 @@ else:
 					phasediff = phase_correction(phi_T-phi_I)
 				else:
 					phasediff = -pi/2
+				
+				# avaraging singnal part to get algebraic sign (oscillation around pos/neg value?)
+				meanI = mean(Inew[start_index:])
+				if meanI < 0.0:
+					polarityI = "neg"
+				else:
+					polarityI = "pos"
 
 				pyro_koeff = (Ifit[0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))		
 				perror = pyro_koeff*rel_err(Tfit_down,Terror_down,Ifit,Ierror,area, area_error,phasediff,Xsigma=sigma)
@@ -816,10 +823,12 @@ else:
 				#Plot Ip and ITSC------------------------------------------------------------------------------------------
 				#NonPyroStrom
 				#m=magenta (TSC)
-
 				nonpyroparams = Parameters()
-				Ip = abs(Ifit[0]*-cos(phasediff))
-				nonpyroparams.add('amp', value=Ip)
+				Inp = abs(Ifit[0]*-cos(phasediff))
+				# if polarityI == "neg":
+					# nonpyroparams.add('amp', value=-1*Inp)
+				# else:
+				nonpyroparams.add('amp', value=Inp)
 				nonpyroparams.add('freq', value=Tfit_down[1])
 				nonpyroparams.add('phase', value=Tfit_down[2])
 				nonpyroparams.add('offs', value=Ifit[3])
@@ -834,8 +843,8 @@ else:
 				#Pyrostrom
 				#c=cyan (Pyro)
 				pyroparams = Parameters()
-				Inp = Ifit[0]*-sin(phasediff)
-				pyroparams.add('amp', value=Inp)
+				Ip = Ifit[0]*-sin(phasediff)
+				pyroparams.add('amp', value=Ip)
 				pyroparams.add('freq', value=Tfit_down[1])
 				pyroparams.add('phase', value=(Tfit_down[2]+pi/2))
 				pyroparams.add('offs', value=Ifit[3])
@@ -1556,7 +1565,6 @@ else:
 						nonpyroparams.add('amp', value=-1*abs(Ifit[i-1,0]*-cos(phasediff)))
 					else:
 						nonpyroparams.add('amp', value=abs(Ifit[i-1,0]*-cos(phasediff)))
-					nonpyroparams.add('amp', value=abs(Ifit[i-1,0]*-cos(phasediff)))
 					nonpyroparams.add('freq', value=Tfit_down_heat[1])
 					nonpyroparams.add('phase', value=Tfit_down_heat[2])
 					nonpyroparams.add('offs', value=Ifit[i-1,3])
