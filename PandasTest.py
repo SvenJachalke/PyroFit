@@ -13,4 +13,7 @@ for file_ in filelist:
 	if file_.endswith('_ELT-Curr-t-I.log'):
 		df = pd.read_csv(file_,delimiter=' ',names=['time','current'],index_col='time')
 		list_.append(df)
+	if file_.endswith('_PWR-t-I-U.log'):
+		df = pd.read_csv(file_,delimiter=' ',names=['time','Pelt_curr','Pelt_volt'],index_col='time')
+		list_.append(df)
 data = pd.concat(list_,axis=1)
