@@ -345,7 +345,7 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 	ax2.legend(title="currents", loc='lower right')
 	ax2.set_xlim(tnew[start_index])
 	ax2.locator_params(nbins=10,axis = 'y')
-	ax2.add_artist(legT)
+	# ax2.add_artist(legT)
 
 	bild.tight_layout()
 	return bild, ax1, ax2
@@ -755,7 +755,7 @@ else:
 				#Fit temperature----------------------------------------------------------------------------------------
 				Tresult_down, Tparams_down = fit(tnew, Tnew[:,0], start_index, len(Tnew[:,0])-1,1,measurement_info, True, True)
 				#correction of phase and amplitudes
-				Tparams_down = amp_phase_correction(Tparams_down)
+				Tparams_down = amp_phase_correction(Tresult_down.params)
 				#extract params dict to lists
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
 				#Plot
@@ -769,7 +769,7 @@ else:
 
 					Tresult_high, Tparams_high = fit(tnew, Tnew[:,1], start_index, len(Tnew_top)-1,5,measurement_info, True, True)
 					#correction of phase and amplitude
-					Tparams_high = amp_phase_correction(Tparams_high)
+					Tparams_high = amp_phase_correction(Tresult_high.params)
 					#extract params dict to lists
 					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 					#plot of second fit
@@ -790,7 +790,7 @@ else:
 				#current fit
 				Iresult = minimize(sinfunc, Iparams, args=(tnew[start_index:],Inew[start_index:]), method="leastsq")
 				#fit correction (amp/phase)
-				Iparams = amp_phase_correction(Iparams)
+				Iparams = amp_phase_correction(Iresult.params)
 				#extract params dict
 				Ifit, Ierror = extract_fit_relerr_params(Iparams)
 				#plot current fit
@@ -861,8 +861,8 @@ else:
 				box = plot_textbox(box_text)
 				leg1 = ax1.legend(title="temperatures",loc='upper right')
 				ax2.legend(title="currents",loc='lower right')
-				ax2.add_artist(leg1)	#bring legend to foreground
-				ax2.add_artist(box)
+				# ax2.add_artist(leg1)	#bring legend to foreground
+				# ax2.add_artist(box)
 
 				draw()
 
