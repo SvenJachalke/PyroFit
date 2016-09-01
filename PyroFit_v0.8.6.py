@@ -862,7 +862,11 @@ else:
 				leg1 = ax1.legend(title="temperatures",loc='upper right')
 				ax2.legend(title="currents",loc='lower right')
 				# ax2.add_artist(leg1)	#bring legend to foreground
+<<<<<<< HEAD:PyroFit_v0.8.5.py
 				# ax2.add_artist(box)
+=======
+				ax2.add_artist(box)
+>>>>>>> origin/PortingToPandas:PyroFit_v0.8.6.py
 
 				draw()
 
