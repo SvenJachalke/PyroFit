@@ -7,90 +7,106 @@
 # Author:	Sven Jachalke
 # Mail:		sven.jachalke@phyik.tu-freiberg.de
 # Adress:	Institut fuer Experimentelle Physik
-#				Leipziger Strasse 23
-#				09596 Freiberg
+#			Leipziger Strasse 23
+#			09596 Freiberg
 #---------------------------------------------------------------------------------------------------------------------------
-#Necessary Python Packages:
+# Necessary Python Packages:
 # - scipy.interpolate
 # - pylab (matplotlib, numpy, scipy), etc.
-# - lmfit (http://newville.github.io/lmfit-py/)
+# - lmfit (https://github.com/lmfit/lmfit-py)
+# - tubafcdpy(https://github.com/SvenJachalke/tubafcdpy)
 #---------------------------------------------------------------------------------------------------------------------------
  
 # Import modules------------------------------------------------------------------------------------------------------------
 from pylab import *
-import glob, sys, os
+from tubafcdpy import *
+import glob, sys, os, datetime
 from scipy.interpolate import interp1d, interp2d
 from scipy.signal import argrelmax, argrelmin
 from warnings import filterwarnings
 from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
-# User Settings-------------------------------------------------------------------------------------------------------------
-upper_I_lim = 1e-3                                  				#limitation of current in plot and fit (for spikes, ...)
-temp_filter_flag = True                          				#True = no plot/fit of second temperature (top PT100)
-current_filter_flag = True
-calculate_data_from_fit_flag = False			        	#True = saving fit as data points to txt file for I_pyro and I_TSC
-PS_flag = False													#flag if PS should be calculated from p(T)
-BR_flag = False													#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 200	                            					#start index for fit/plot (100 = 50s, because 2 indices = 1s)
-single_crystal = False                              				#for single crystals phase=90deg ... thermal contact correction
-interpolation_step = 0.5
-fit_periods = 1														#how many periods have to fitted with sine wave in SinLinRamp
-start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]#start parameters for current fit [amp, freq, phase, offs, slope]
-Ifit_counter_limit = 5												#repeat number when I-fit insufficient
-sigma = 3
+# Operator Information------------------------------------------------------------------------------------------------------
+now = datetime.datetime.now()
+operator = {
+			'name':'Sven Jachalke',
+			'mail':'sven.jachalke@physik.tu-freiberg.de',
+			'company':'TU Bergakademie Freiberg',
+			'tel':'+49 (0) 3731 / 39-3787',
+			'date': now.strftime('%Y-%m-%d')
+			}
 
-warnings.filterwarnings("ignore")								#ignores warnings
+# User Settings-------------------------------------------------------------------------------------------------------------
+upper_I_lim = 1e-3											#limitation of current in plot and fit (for spikes, ...)
+temp_filter_flag = True										#True = no plot/fit of second temperature (top PT100)
+current_filter_flag = True
+calculate_data_from_fit_flag = False						#True = saving fit as data points to txt file for I_pyro and I_TSC
+PS_flag = False												#flag if PS should be calculated from p(T)
+BR_flag = False												#Flag for ByerRoundy Plot (False=not plotting)
+start_index = 200											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+single_crystal = False										#for single crystals phase=90deg ... thermal contact correction
+interpolation_step = 0.5									#time grid for interpolation (in sec)
+fit_periods = 1												#how many periods have to fitted with sine wave in SinLinRamp
+start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]	#start parameters for current fit [amp, freq, phase, offs, slope]
+Ifit_counter_limit = 5										#repeat number when I-fit insufficient
+sigma = 3													#error level
+
+warnings.filterwarnings("ignore")							#ignores warnings
 ion()
 
 # Altered setting for Fit -------------------------------------------------------------------------------------------------------------
-Formation = False													#If TRUE an OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
-																			#Used for SrTiO3 Formation (under electric field)
-PartWiseTFit = False												#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
-																			#as the current (same interval!) and not over the whole range
-																			
+Formation = False											#If TRUE an OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
+															#Used for SrTiO3 Formation (under electric field)
+PartWiseTFit = False										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
+															#as the current (same interval!) and not over the whole range
+															
 # General Settings----------------------------------------------------------------------------------------------------------
 # Plot Settings-------------------------------------------------------------------------------------------------------------
-matplotlib.rcParams['legend.fancybox'] = True       	#plot fancy box (round edges)
-label_size = '16'														#font size of x,y labels in plot
-enable_title = True												#enable/disable title in plot
-title_size = '15'														#font size of the figure title
-fig_size = (12.0,9.0)												#size of figures (general aspect ratio 4:3!!!)
-set_dpi = 150							 							#dpi for exporting figures
-transparency_flag = False										#exporting figures with transparent background?
+matplotlib.rcParams['legend.fancybox'] = True				#plot fancy box (round edges)
+label_size = '18'											#font size of x,y labels in plot
+enable_title = True											#enable/disable title in plot
+title_size = '15'											#font size of the figure title
+fig_size = (12.0,9.0)										#size of figures (general aspect ratio 4:3!!!)
+set_dpi = 150							 					#dpi for exporting figures
+transparency_flag = False									#exporting figures with transparent background?
 facecolor_legends = 'white'
-fontsize_box = '10'
-skip_points = 0														#initial skip points in plotting to speed up plotting and zooming (not interpol, fit)
+fontsize_box = '12'
+skip_points = 0												#initial skip points in plotting to speed up plotting and zooming (not interpol, fit)
 colorlist = ['m','g', 'c', 'r']
 linestylelist = ['x','*','o ', 'x']
-color_style = 'Standard'												#TUBAF = CD colors, Standard = Matplotlib standard colors
-temp_linestyle=['o','']												# makerstyle, linestyle
+color_style = 'TUBAF'										#TUBAF = CD colors, Standard = Matplotlib standard colors
+temp_linestyle=['o','']										# makerstyle, linestyle
 curr_linestyle = ['o','']
 volt_linestyle = ['*','']
 							
 line = "--------------------------------"
 
+print_signature = False										#print the operators signature at the bottom of the plot
+export_format = 'png'										#figure output format
+															#png, pdf
+
 # Variables for fit parameters----------------------------------------------------------------------------------------------
-Tfit_down = [0,0,0,0,0]											#bottom temperature
+Tfit_down = [0,0,0,0,0]										#bottom temperature
 Terror_high = [0,0,0,0,0]
-Tfit_high = [0,0,0,0,0]											#top temperature
+Tfit_high = [0,0,0,0,0]										#top temperature
 Terror_low = [0,0,0,0,0]
-Ifit = [0,0,0,0,0]													#current
+Ifit = [0,0,0,0,0]											#current
 Ierror = [0,0,0,0,0]
 
 # Areas for pyroKoeff-------------------------------------------------------------------------------------------------------
 area_d5 = pi/4.0*(5.385/1000)**2							#for small Edwards shadow mask (d=5.385mm)
-area_d13 = pi/4.0*(12.68/1000)**2						#for big Edwards shadow mask (d=12.68mm)
+area_d13 = pi/4.0*(12.68/1000)**2							#for big Edwards shadow mask (d=12.68mm)
 area_d15 = pi/4.0*(15.0/1000)**2							#for single crystals with d=15mm
-area_a5 = 1.4668e-5						            			#for 5x5mm samples, e.g. SrTiO3, ...
+area_a5 = 1.4668e-5											#for 5x5mm samples, e.g. SrTiO3, ...
 #areas from older skript versions
-area_d13_old = 1.3994e-4										#for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
+area_d13_old = 1.3994e-4									#for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
 area_d15_old = 1.761e-4										#for single crystals with d=15mm
 
 #costums (in m2)
-custom = 6.419143e-5			        						#custorm values which has to be stored but no included in the list above
+custom = 6.419143e-5										#custorm values which has to be stored but no included in the list above
 #custom area_error (in m2)
-custom_error = 2.992876e-7									#area error for custom											
+custom_error = 2.992876e-7									#area error for custom
 
 
 # Functions-----------------------------------------------------------------------------------------------------------------
@@ -348,6 +364,12 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 	# ax2.add_artist(legT)
 
 	bild.tight_layout()
+	
+	if print_signature == True:
+		bild.subplots_adjust(bottom=0.125)
+		signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
+		figtext(0.15,0.02,signature)
+	
 	return bild, ax1, ax2
 def plot_textbox(boxtext):
 	"""
@@ -373,17 +395,20 @@ def saving_figure(bild, pbild=False):
 	print "--------------------------------"
 	print "saving ..."
 	if pbild == False:
-		image_name = date+"_"+samplename+"_"+T_profile+"_T-I.png"
-		print("...Temperature/Current Plot\n%s" % image_name)
-		bild.savefig(image_name, dpi=set_dpi, transparent=transparency_flag)
+		image_name = date+"_"+samplename+"_"+T_profile+"_T-I"
+		print("...Temperature/Current Plot\n%s.%s" % (image_name,export_format))
+		
 	elif pbild == "Polarize":
-		image_name = date+'_'+samplename+'_Polarize.png'
-		print("...Temperature/Polarization Plot\n%s" % image_name)
-		bild.savefig(image_name, dpi=set_dpi, transparent=transparency_flag)
+		image_name = date+'_'+samplename+'_Polarize'
+		print("...Temperature/Polarization Plot\n%s.%s" % (image_name,export_format))
 	else:
-		image_name = date+"_"+samplename+"_"+T_profile+"_p.png"
-		print("...Pyro Plot\n%s" % image_name)
-		bild.savefig(image_name, dpi=set_dpi, transparent=transparency_flag)
+		image_name = date+"_"+samplename+"_"+T_profile+"_p"
+		print("...Pyro Plot\n%s.%s" %(image_name,export_format))
+	
+	if export_format == 'png':
+			bild.savefig(image_name+'.png', dpi=set_dpi, transparent=transparency_flag)
+	elif export_format == 'pdf':
+			bild.savefig(image_name+'.pdf')
 	return None
 
 # fit functions ---------------------------------------------------------------------------------------------------------------
@@ -547,19 +572,6 @@ def phase_correction(phase):
 		
 	return phase
 
-#figure adjustments---------------------------------------------------------------------------------------------------------------
-#TUBAF CD Colors2013
-def TUBAFblau():
-	return (0/255.,100/255.,168/255.)
-def TUBAFrot():
-	return (181/255.,18/255.,62/255.)
-def TUBAFgruen():
-	return (25/255.,150/255.,43/255.)
-def TUBAForange():
-	return (244/255.,134/255.,3/255.)
-def TUBAFcyan():
-	return (35/255.,186/255.,226/255.)
-
 
 #Main Program------------------------------------------------------------------------------------------------------------------
 #------------------------------------------------------------------------------------------------------------------------------
@@ -572,11 +584,11 @@ print line
 #Init Plot Colors-----------------------------------------------------------------------------------------------------------------
 if color_style == 'TUBAF':
 	other = 'k'
-	temp_color = TUBAFblau()
-	curr_color = TUBAFrot()
+	temp_color = TUBAFblue()
+	curr_color = TUBAFred()
 	p_color = TUBAForange()
 	np_color = TUBAFcyan()
-	volt_color = TUBAFgruen()
+	volt_color = TUBAFgreen()
 elif color_style == 'Standard':
 	other = 'k'
 	temp_color = 'b'
@@ -862,11 +874,8 @@ else:
 				leg1 = ax1.legend(title="temperatures",loc='upper right')
 				ax2.legend(title="currents",loc='lower right')
 				# ax2.add_artist(leg1)	#bring legend to foreground
-<<<<<<< HEAD:PyroFit_v0.8.5.py
-				# ax2.add_artist(box)
-=======
 				ax2.add_artist(box)
->>>>>>> origin/PortingToPandas:PyroFit_v0.8.6.py
+
 
 				draw()
 
