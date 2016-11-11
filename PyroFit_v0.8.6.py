@@ -82,7 +82,7 @@ volt_linestyle = ['*','']
 							
 line = "--------------------------------"
 
-print_signature = False										#print the operators signature at the bottom of the plot
+print_signature = True										#print the operators signature at the bottom of the plot
 export_format = 'png'										#figure output format
 															#png, pdf
 
@@ -503,7 +503,7 @@ def fit(x, y, start, end, slice, start_parameters, vary_freq=True, heating=True)
 	#perform fit
 	result = minimize(sinfunc, Params, args=(x[start:end:slice], y[start:end:slice]), method="leastsq")
 
-	return result, Params
+	return result
 def rel_err(Tfit, Terror, Ifit, Ierror, area, area_error, phasediff, Xsigma=1):
 	"""
 	Calculates relative maximum error 
@@ -765,7 +765,7 @@ else:
 				print "... fitting"
 				
 				#Fit temperature----------------------------------------------------------------------------------------
-				Tresult_down, Tparams_down = fit(tnew, Tnew[:,0], start_index, len(Tnew[:,0])-1,1,measurement_info, True, True)
+				Tresult_down = fit(tnew, Tnew[:,0], start_index, len(Tnew[:,0])-1,1,measurement_info, True, True)
 				#correction of phase and amplitudes
 				Tparams_down = amp_phase_correction(Tresult_down.params)
 				#extract params dict to lists
@@ -779,7 +779,7 @@ else:
 				#for top temperature
 				if temp_filter_flag == False:
 
-					Tresult_high, Tparams_high = fit(tnew, Tnew[:,1], start_index, len(Tnew_top)-1,5,measurement_info, True, True)
+					Tresult_high = fit(tnew, Tnew[:,1], start_index, len(Tnew_top)-1,5,measurement_info, True, True)
 					#correction of phase and amplitude
 					Tparams_high = amp_phase_correction(Tresult_high.params)
 					#extract params dict to lists
@@ -1021,24 +1021,24 @@ else:
 					log = open(date+"_"+samplename+"_"+T_profile+"_T-Fit.txt", 'w+')
 					
 					#Temperature Fit -------------------------------------------------------------------------------------
-					Tresult_down, Tparams_down = fit(tnew, Tnew[:,0],start_index,limit,1,measurement_info, True, True)
+					Tresult_down = fit(tnew, Tnew[:,0],start_index,limit,1,measurement_info, True, True)
 					#correction of phase and amplitudes
-					Tparams_down = amp_phase_correction(Tparams_down)
+					Tparams_down = amp_phase_correction(Tresult_down.params)
 					#extract params dict to lists
 					Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
 					#Fit-Plot
 					ax1.plot(tnew[start_index:limit], sinfunc(Tparams_down, tnew[start_index:limit]), color=temp_color,linestyle='-', label='T-Fit')
 					draw()
 					#absolute T_high Error
-					total_Terror_down = abs(Tparams_down['amp'].stderr/Tparams_down['amp'].value)+abs(Tparams_down['phase'].stderr/Tparams_down['phase'].value)+abs(Tparams_down['freq'].stderr/Tparams_down['freq'].value)+abs(Tparams_down['offs'].stderr/Tparams_down['offs'].value)+abs(Tparams_down['slope'].stderr/Tparams_down['slope'].value)
+					total_Terror_down = abs(Tresult_down.params['amp'].stderr/Tresult_down.params['amp'].value)+abs(Tresult_down.params['phase'].stderr/Tresult_down.params['phase'].value)+abs(Tresult_down.params['freq'].stderr/Tresult_down.params['freq'].value)+abs(Tresult_down.params['offs'].stderr/Tresult_down.params['offs'].value)+abs(Tresult_down.params['slope'].stderr/Tresult_down.params['slope'].value)
 					#file output
 					fileprint_fit(log,Tparams_down,"Temperature (Down)")
 					
 					#for top temperature-------------------
 					if temp_filter_flag == False:
-						Tresult_high, Tparams_high = fit(tnew[:-5], Tnew[:,1], start_index, limit,1, measurement_info, True, True)
+						Tresult_high = fit(tnew[:-5], Tnew[:,1], start_index, limit,1, measurement_info, True, True)
 						#correction of phase and amplitude
-						Tparams_high = amp_phase_correction(Tparams_high)
+						Tparams_high = amp_phase_correction(Tresult_high.params)
 						#extract params dict to lists
 						Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 						#plot of second fit
@@ -1050,7 +1050,7 @@ else:
 						fileprint_fit(log,Tparams_high,"Temperature (High)")
 
 					leg_T = ax1.legend(loc="upper right",title='temperatures')
-					ax2.add_artist(leg_T)
+					#ax2.add_artist(leg_T)
 					draw()
 					
 					log.close()
@@ -1092,6 +1092,8 @@ else:
 					#fit of sin and lin func
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
 					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+					
+					Iparams = Iresult_sin.params
 					
 					#Repeat Feature if lin. Feat is better than sine fit
 					Ifit_counter = 1
@@ -1289,6 +1291,12 @@ else:
 				ax8.set_ylabel(r"$I_{\mathrm{Amp}}$ (A)",color=curr_color,size=label_size)
 
 				bild2.tight_layout()
+				
+				if print_signature == True:
+					bild2.subplots_adjust(bottom=0.125)
+					signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
+					figtext(0.15,0.02,signature)
+				
 				show()
 
 				#Calculating p ---------------------------------------------------------------------------------------
