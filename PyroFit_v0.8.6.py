@@ -1437,9 +1437,9 @@ else:
 				satzlaenge = len(tnew[:end_point_index-start_index])/T_perioden
 				
 				#Temp fit/plot for heating-----------------------------------------------------------------------------
-				Tresult_down_heat, Tparams_down_heat = fit(tnew, Tnew[:,0],start_index,turning_point_index,1,measurement_info,True,True)
+				Tresult_down_heat = fit(tnew, Tnew[:,0],start_index,turning_point_index,1,measurement_info,True,True)
 				#correction of phase and amplitudes
-				Tparams_down_heat = amp_phase_correction(Tparams_down_heat)
+				Tparams_down_heat = amp_phase_correction(Tresult_down_heat.params)
 				#extract params dict to lists
 				Tfit_down_heat, Terror_down_heat = extract_fit_relerr_params(Tparams_down_heat)
 				#Fit-Plot
@@ -1451,9 +1451,9 @@ else:
 				fileprint_fit(log,Tparams_down_heat,"Temperature (Down) - Heating")
 				#for top temperature-------------------
 				if temp_filter_flag == False:
-					Tresult_high_heat, Tparams_high_heat = fit(tnew, Tnew[:,1], start_index, turning_point_index,1, measurement_info,True,True)
+					Tresult_high_heat = fit(tnew, Tnew[:,1], start_index, turning_point_index,1, measurement_info,True,True)
 					#correction of phase and amplitude
-					Tparams_high_heat = amp_phase_correction(Tparams_high_heat)
+					Tparams_high_heat = amp_phase_correction(Tresult_high_heat.params)
 					#extract params dict to lists
 					Tfit_high_heat, Terror_high_heat = extract_fit_relerr_params(Tparams_high_heat)
 					#plot of second fit
@@ -1466,9 +1466,9 @@ else:
 				
 				
 				#Temp fit/plot for cooling-----------------------------------------------------------------------------
-				Tresult_down_cool, Tparams_down_cool = fit(tnew, Tnew[:,0],turning_point_index,end_point_index,1,measurement_info, True, heating=False)
+				Tresult_down_cool= fit(tnew, Tnew[:,0],turning_point_index,end_point_index,1,measurement_info, True, heating=False)
 				#correction of phase and amplitudes
-				Tparams_down_cool = amp_phase_correction(Tparams_down_cool)
+				Tparams_down_cool = amp_phase_correction(Tresult_down_cool.params)
 				#extract params dict to lists
 				Tfit_down_cool, Terror_down_cool = extract_fit_relerr_params(Tparams_down_cool)
 				#Fit-Plot
@@ -1479,9 +1479,9 @@ else:
 				#file output
 				fileprint_fit(log,Tparams_down_cool,"Temperature (Down) - Cooling")  
 				if temp_filter_flag == False:
-					Tresult_high_cool, Tparams_high_cool = fit(tnew, Tnew[:,1], turning_point_index,end_point_index,1, measurement_info, True, heating=False)
+					Tresult_high_cool= fit(tnew, Tnew[:,1], turning_point_index,end_point_index,1, measurement_info, True, heating=False)
 					#correction of phase and amplitudes
-					Tparams_high_cool = amp_phase_correction(Tparams_high_cool)
+					Tparams_high_cool = amp_phase_correction(Tresult_high_cool.params)
 					#extract params dict to lists
 					Tfit_high_cool, Terror_high_cool = extract_fit_relerr_params(Tparams_high_cool)
 					#plot of second fit
@@ -1528,6 +1528,8 @@ else:
 					#fit of sin and lin func
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
 					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+					
+					Iparams = Iresult_sin.params
 					
 					#Repeat Feature if lin. Fit is better than sine fit
 					Ifit_counter = 1
@@ -1591,7 +1593,7 @@ else:
 					nonpyroparams.add('offs', value=Ifit[i-1,3])
 					nonpyroparams.add('slope', value=Ifit[i-1,4])
 					nonpyroparams = amp_phase_correction(nonpyroparams)
-					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]), 'm-')
+					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]), color=np_color,linestyle='-')
 					
 					#Calculating Data from Fit - TSC
 					if calculate_data_from_fit_flag == True:
@@ -1612,7 +1614,7 @@ else:
 					pyroparams.add('offs', value=Ifit[i-1,3])
 					pyroparams.add('slope', value=Ifit[i-1,4])
 					pyroparams = amp_phase_correction(pyroparams)
-					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), 'c-')
+					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), color=p_color,linestyle='-')
 					
 					#Calculating Data from Fit - Pyro
 					if calculate_data_from_fit_flag == True:
