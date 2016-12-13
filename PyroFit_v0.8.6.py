@@ -51,6 +51,7 @@ fit_periods = 1												#how many periods have to fitted with sine wave in Si
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]	#start parameters for current fit [amp, freq, phase, offs, slope]
 Ifit_counter_limit = 5										#repeat number when I-fit insufficient
 sigma = 3													#error level
+R_voltmeter = 10e6											#6514: 10MOhn with zero check on
 
 warnings.filterwarnings("ignore")							#ignores warnings
 ion()
@@ -134,7 +135,7 @@ def extract_datatype(filename):
 	"""
 	if filename.endswith("ELT-Curr-t-I.log"):
 		return "Current"
-	elif filename.endswith("ELT-Volt-t-V.log"):
+	elif filename.endswith("ELT-Volt-t-U.log"):
 		return "Voltage"
 	elif filename.endswith("ELT-Char-t-Q.log"):
 		return "Charge"
@@ -352,17 +353,25 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 	ax1.set_xlim(tnew[start_index])
 	ax1.locator_params(nbins=10)
 
-	#Plot Current
-	ax2.set_ylabel("current (A)",color=curr_color,size=label_size)
+	if signal == 'voltage':
+		#Plot Voltage
+		ax2.set_ylabel("voltage (V)",color=curr_color,size=label_size)
+		ax2.plot(tnew[start_index::set_skip_points()], Vnew[start_index::set_skip_points()], marker=curr_linestyle[0], linestyle=curr_linestyle[1] ,color=curr_color, label="I meas.")
+		ax2.legend(title="voltage", loc='lower right')
+	else:
+		#Plot Current
+		ax2.set_ylabel("current (A)",color=curr_color,size=label_size)
+		ax2.plot(tnew[start_index::set_skip_points()], Inew[start_index::set_skip_points()], marker=curr_linestyle[0], linestyle=curr_linestyle[1] ,color=curr_color, label="I meas.")
+		ax2.legend(title="currents", loc='lower right')
+	
 	ax2.set_xlim(ax1.get_xbound())
-	ax2.tick_params(axis='y', colors=curr_color)
 	ax2.autoscale(enable=True, axis='y', tight=None)
-	ax2.plot(tnew[start_index::set_skip_points()], Inew[start_index::set_skip_points()], marker=curr_linestyle[0], linestyle=curr_linestyle[1] ,color=curr_color, label="I meas.")
-	ax2.legend(title="currents", loc='lower right')
+	ax2.tick_params(axis='y', colors=curr_color)
 	ax2.set_xlim(tnew[start_index])
 	ax2.locator_params(nbins=10,axis = 'y')
 	# ax2.add_artist(legT)
-
+	
+	
 	bild.tight_layout()
 	
 	if print_signature == True:
@@ -602,6 +611,7 @@ filelist = glob.glob('*.log')
 filecounter = 0
 
 #check folder for files and read files!
+signal = None
 for filename in filelist:
 
 	date=extract_date(filename)
@@ -623,6 +633,7 @@ for filename in filelist:
 		sys.stdout.flush()
 
 	elif datatype=="Current":
+		signal = 'current'
 		Idata = loadtxt(filename)
 
 		#previous filtering of data
@@ -642,12 +653,14 @@ for filename in filelist:
 		sys.stdout.flush()
 
 	elif datatype=="Charge":
+		signal = 'charge'
 		Qdata = loadtxt(filename)
 		filecounter = filecounter + 1
 		sys.stdout.write("\rReading: %d/%d completed" % (filecounter,len(filelist)))
 		sys.stdout.flush()
 
 	elif datatype=="Voltage":
+		signal = 'voltage'
 		Vdata = loadtxt(filename)
 		filecounter = filecounter +1
 		sys.stdout.write("\rReading: %d/%d completed" % (filecounter,len(filelist)))
@@ -744,8 +757,12 @@ else:
 		#---------------------------------------------------------------------------------------------------------------------
 		#SineWave Method
 		elif measurement_info['waveform'] == "SineWave":
-			print "Mode:\t\tSineWave"
-			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1fK" % (measurement_info['amp'], measurement_info['freq']*1000, measurement_info['offs'])
+			print("Mode:\t\tSineWave")
+			if signal == 'current':
+				print("Signal:\t\tCurrent")
+			elif signal == 'voltage':
+				print("Signal:\t\tVoltage")
+			print("Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1fK" % (measurement_info['amp'], measurement_info['freq']*1000, measurement_info['offs']))
 
 			#Interpolation and plot of data---
 			print line
@@ -753,8 +770,12 @@ else:
 			print line
 
 			# pre-fit plot
-			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
-			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+			if signal == 'current':
+				tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+			elif signal == 'voltage':
+				tnew, Tnew, Vnew = interpolate_data(Tdata, Vdata, interpolation_step, temp_filter_flag)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Vnew, T_profile)
 
 			#---------------------------------------------------------------------------------------------------------------
 			input = raw_input("fit? [y/n]")
@@ -792,84 +813,97 @@ else:
 
 				#Fit current ---------------------------------------------------------------------------------------------
 				#initialize parameters dict for current fit
-				Iparams = Parameters()
-				Iparams.add('amp', value=1e-11)
-				Iparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.2, vary=False)
-				Iparams.add('phase', value=1.0)
-				Iparams.add('offs', value=1e-10)
-				Iparams.add('slope', value=1e-10)
+				Signalparams = Parameters()
+				Signalparams.add('amp', value=1e-11)
+				Signalparams.add('freq', value=Tfit_down[1], min=1e-5, max=0.2, vary=False)
+				Signalparams.add('phase', value=1.0)
+				Signalparams.add('offs', value=1e-10)
+				Signalparams.add('slope', value=1e-10)
 
-				#current fit
-				Iresult = minimize(sinfunc, Iparams, args=(tnew[start_index:],Inew[start_index:]), method="leastsq")
+				if signal == 'current':
+					#current fit
+					Signalresult = minimize(sinfunc, Signalparams, args=(tnew[start_index:],Inew[start_index:]), method="leastsq")
+					fitlabel = 'I-fit'
+				elif signal == 'voltage':
+					#voltage fit
+					Signalresult = minimize(sinfunc, Signalparams, args=(tnew[start_index:],Vnew[start_index:]), method="leastsq")
+					fitlabel = 'V-fit'
 				#fit correction (amp/phase)
-				Iparams = amp_phase_correction(Iresult.params)
+				Signalparams = amp_phase_correction(Signalresult.params)
 				#extract params dict
-				Ifit, Ierror = extract_fit_relerr_params(Iparams)
-				#plot current fit
-				ax2.plot(tnew[start_index:], sinfunc(Iparams, tnew[start_index:]), color=curr_color,linestyle='-', label='I-Fit')
+				Signalfit, Signalerror = extract_fit_relerr_params(Signalparams)
+				#Plot
+				ax2.plot(tnew[start_index:], sinfunc(Signalparams, tnew[start_index:]), color=curr_color,linestyle='-', label=fitlabel)
 				draw()
 
 				#calculate pyroelectric coefficient------------------------------------------------------------------------
 				if single_crystal == False:
 					#calculate phase difference
 					phi_T = Tfit_down[2]
-					phi_I = Ifit[2]
+					phi_Signal = Signalfit[2]
 					# if abs(phi_I) > abs(phi_T):
 						# phasediff = phase_correction(phi_I-phi_T)
 					# else:
 						# phasediff = phase_correction(phi_T-phi_I)
-					phasediff = phase_correction(phi_T-phi_I)
+					phasediff = phase_correction(phi_T-phi_Signal)
 				else:
 					phasediff = -pi/2
 				
 				# avaraging singnal part to get algebraic sign (oscillation around pos/neg value?)
-				meanI = mean(Inew[start_index:])
-				if meanI < 0.0:
-					polarityI = "neg"
+				if signal == 'current':
+					mean = mean(Inew[start_index:])
+				elif signal == 'voltage':
+					mean = mean(Vnew[start_index:])
+					
+				if mean < 0.0:
+					polarity = "neg"
 				else:
-					polarityI = "pos"
+					polarity = "pos"
 
-				pyro_koeff = (Ifit[0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))		
-				perror = pyro_koeff*rel_err(Tfit_down,Terror_down,Ifit,Ierror,area, area_error,phasediff,Xsigma=sigma)
+				if signal == 'current':
+					pyro_koeff = (Signalfit[0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))		
+				elif signal == 'voltage':
+					pyro_koeff = (Signalfit[0])/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1])*R_voltmeter)
+				perror = pyro_koeff*rel_err(Tfit_down,Terror_down,Signalfit,Signalerror,area, area_error,phasediff,Xsigma=sigma)
 
 				#Plot Ip and ITSC------------------------------------------------------------------------------------------
 				#NonPyroStrom
 				#m=magenta (TSC)
 				nonpyroparams = Parameters()
-				Inp = abs(Ifit[0]*-cos(phasediff))
+				Signalnp = abs(Signalfit[0]*-cos(phasediff))
 				# if polarityI == "neg":
 					# nonpyroparams.add('amp', value=-1*Inp)
 				# else:
-				nonpyroparams.add('amp', value=Inp)
+				nonpyroparams.add('amp', value=Signalnp)
 				nonpyroparams.add('freq', value=Tfit_down[1])
 				nonpyroparams.add('phase', value=Tfit_down[2])
-				nonpyroparams.add('offs', value=Ifit[3])
-				nonpyroparams.add('slope', value=Ifit[4])
+				nonpyroparams.add('offs', value=Signalfit[3])
+				nonpyroparams.add('slope', value=Signalfit[4])
 				nonpyroparams = amp_phase_correction(nonpyroparams)
 				ax2.plot(tnew[start_index:], sinfunc(nonpyroparams, tnew[start_index:]), color=np_color,linestyle='-',label='non-pyro')
 				
 				#Calculating Data from Fit - Pyro
 				if calculate_data_from_fit_flag == True:
-						I_TSC = (array([tnew[start_index:], sinfunc(nonpyroparams, tnew[start_index:])])).T		#transpose!
+						Signal_TSC = (array([tnew[start_index:], sinfunc(nonpyroparams, tnew[start_index:])])).T		#transpose!
 
 				#Pyrostrom
 				#c=cyan (Pyro)
 				pyroparams = Parameters()
-				Ip = Ifit[0]*-sin(phasediff)
-				pyroparams.add('amp', value=Ip)
+				Signalp = Signalfit[0]*-sin(phasediff)
+				pyroparams.add('amp', value=Signalp)
 				pyroparams.add('freq', value=Tfit_down[1])
 				pyroparams.add('phase', value=(Tfit_down[2]+pi/2))
-				pyroparams.add('offs', value=Ifit[3])
-				pyroparams.add('slope', value=Ifit[4])
+				pyroparams.add('offs', value=Signalfit[3])
+				pyroparams.add('slope', value=Signalfit[4])
 				pyroparams = amp_phase_correction(pyroparams)
 				ax2.plot(tnew[start_index:], sinfunc(pyroparams, tnew[start_index:]), color=p_color,linestyle='-',label='pyro')
 				
 				#Calculating Data from Fit - Pyro
 				if calculate_data_from_fit_flag == True:
-					I_pyro = (array([tnew[start_index:], sinfunc(pyroparams, tnew[start_index:])])).T		#transpose!
+					Signal_pyro = (array([tnew[start_index:], sinfunc(pyroparams, tnew[start_index:])])).T		#transpose!
 
 				#legend and information box
-				box_text = r"$A$:"+"\t     "+format(area,'.3e')+r" $\mathrm{m^2}$"+"\n"+ r"$I_{\mathrm{Amp}}$:"+"\t"+format(Ifit[0],'.3e')+r" A"+"\n"+ r"$T_{\mathrm{Amp}}$:"+"\t"+format(Tfit_down[0],'.3f')+r" K"+"\n"+r"$f$:"+"\t     "+format(Tfit_down[1]*1000,'.3f')+" mHz"+"\n"+r"$\phi$:"+"\t\t"+format(degrees(phasediff),'.3f')+"$^{\circ}$"+"\n"+r"$p$:"+"\t     "+format(pyro_koeff*1e6,'.3f')+r" $\mathrm{\mu C/Km^2}$"
+				box_text = r"$A$:"+"\t     "+format(area,'.3e')+r" $\mathrm{m^2}$"+"\n"+ r"$I_{\mathrm{Amp}}$:"+"\t"+format(Signalfit[0],'.3e')+r" A"+"\n"+ r"$T_{\mathrm{Amp}}$:"+"\t"+format(Tfit_down[0],'.3f')+r" K"+"\n"+r"$f$:"+"\t     "+format(Tfit_down[1]*1000,'.3f')+" mHz"+"\n"+r"$\phi$:"+"\t\t"+format(degrees(phasediff),'.3f')+"$^{\circ}$"+"\n"+r"$p$:"+"\t     "+format(pyro_koeff*1e6,'.3f')+r" $\mathrm{\mu C/Km^2}$"
 				box = plot_textbox(box_text)
 				leg1 = ax1.legend(title="temperatures",loc='upper right')
 				ax2.legend(title="currents",loc='lower right')
@@ -881,18 +915,18 @@ else:
 
 				#console output --------------------------------------------------------------------------------------------
 				print 'Area:\t\t', area, 'm2'
-				print 'I_pyro:\t\t', fabs(Ip), 'A'
-				print 'I_TSC:\t\t', fabs(Inp), 'A'
+				print 'I_pyro:\t\t', fabs(Signalp), 'A'
+				print 'I_TSC:\t\t', fabs(Signalnp), 'A'
 				print 'phase T-I:\t',(degrees(phasediff))
 				print 'p:\t\t', pyro_koeff*1e6,'yC/Km2'
 				print '\t\t(+-', perror*1e6,'yC/Km2)'
-				print 'B_T:\t\t%f nA/K' % (fabs(Inp/Tfit_down[1])*1e9)
+				print 'B_T:\t\t%f nA/K' % (fabs(Signalnp/Tfit_down[1])*1e9)
 				input = raw_input("Show fits? [y/n]")
 				if input == "y":
 					consoleprint_fit(Tparams_down, "Temperature (Down)")
 					if temp_filter_flag == False:
 						consoleprint_fit(Tparams_high, "Temperature (High)")
-					consoleprint_fit(Iparams,"Current")
+					consoleprint_fit(Signalparams,"Current")
 				else:
 					pass
 
@@ -904,13 +938,13 @@ else:
 					fileprint_fit(log, Tparams_high, "Temperature (High)")
 				log.close()
 				log = open(date+"_"+samplename+"_"+T_profile+"_I-Fit.txt", 'w+')
-				fileprint_fit(log, Iparams, "I-Fit")
+				fileprint_fit(log, Signalparams, "I-Fit")
 				log.close()
 				header_string = "#area [m2]\t\t\tI-p [A]\t\t\tI-TSC [A]\t\t\tphasediff [deg]\t\t\tpyroCoeff [yC/Km2]\t\t\tp_error [µC/Km2]\t\t\tB_T [A/K]"
-				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", [area,Ip,Inp,degrees(phasediff),pyro_koeff,perror, fabs(Inp/Tfit_down[1])], delimiter="\t", header=header_string)
+				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", [area,Signalp,Signalnp,degrees(phasediff),pyro_koeff,perror, fabs(Signalnp/Tfit_down[1])], delimiter="\t", header=header_string)
 				if calculate_data_from_fit_flag == True:
 					header_string = "time [s]\t\t\tI_TSC [A]\t\t\tI_pyro [A]"
-					savetxt(date+"_"+samplename+"_"+T_profile+"_"+"DataFromFit.txt", vstack([I_TSC[:,0], I_TSC[:,1], I_pyro[:,1]]).T, delimiter="\t", header=header_string)
+					savetxt(date+"_"+samplename+"_"+T_profile+"_"+"DataFromFit.txt", vstack([Signal_TSC[:,0], Signal_TSC[:,1], Signal_pyro[:,1]]).T, delimiter="\t", header=header_string)
 
 
 			else:
