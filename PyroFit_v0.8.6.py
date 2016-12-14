@@ -958,6 +958,10 @@ else:
 		#SineWave+LinearRamp Method
 		elif measurement_info['waveform'] == "SineWave+LinRamp":
 			print "Mode:\t\tSineWave+LinRamp"
+			if signal == 'current':
+				print("Signal:\t\tCurrent")
+			elif signal == 'voltage':
+				print("Signal:\t\tVoltage")
 			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1f-%.1fK\n\t\tb=%.2fK/h" % (measurement_info['amp'], measurement_info['freq']*1000, measurement_info['offs'],measurement_info['T_Limit_H'], measurement_info['heat_rate']*3600)
 
 			#Interpolation of data-----------
@@ -966,8 +970,12 @@ else:
 			print line
 
 			# pre-fit plot
-			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
-			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+			if signal == 'current':
+				tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+			elif signal == 'voltage':
+				tnew, Tnew, Vnew = interpolate_data(Tdata, Vdata, interpolation_step, temp_filter_flag)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Vnew, T_profile)
 
 			show()
 
@@ -1437,6 +1445,10 @@ else:
 		#SineWave+TriangleHat--------------------------------------------------------------------------------------------
 		elif measurement_info['waveform'] == "SineWave+TriangleHat":
 			print "Mode:\t\tSineWave+TriHat"
+			if signal == 'current':
+				print("Signal:\t\tCurrent")
+			elif signal == 'voltage':
+				print("Signal:\t\tVoltage")
 			print "Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h\n\t\tA=%.1fK\n\t\tf=%.1fmHz" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['offs'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600, measurement_info['amp'], measurement_info['freq']*1000)
 
 			print line
@@ -1444,8 +1456,12 @@ else:
 			print line
 
 			# pre-fit plot
-			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
-			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+			if signal == 'current':
+				tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+			elif signal == 'voltage':
+				tnew, Tnew, Vnew = interpolate_data(Tdata, Vdata, interpolation_step, temp_filter_flag)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Vnew, T_profile)
 
 			show()
 
