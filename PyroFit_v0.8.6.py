@@ -942,15 +942,20 @@ else:
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
 			show()
-
+			
 			input = raw_input("fit [y/n]?")
 			if input == "y":
 
 				#area for pyroel. coefficent
 				area, area_error = get_area()
 				print("Area: %e m2" % area)
-				
 				print("\n"+line)
+				
+				if measurement_info['cool_rate'] != 0:
+					choise_rate = raw_input('use "cool" or "heat" rate?:')
+					if choise_rate == 'cool':
+						usecoolrate_flag = True
+
 				print("...fitting")
 				if PartWiseTFit == True:
 					print("Partwise Temp.Fit enabled!")
@@ -959,18 +964,27 @@ else:
 				# Fit over whole temperature range -------------------------------------------------------------------------------------
 				
 				#important calculations for further fit;)---------------------------------------------------------------
-				#check when ramp runs into T_Limit_H
+				#check when ramp run into T_Limit_H
 				if max(Tnew[:,0]) < measurement_info['T_Limit_H']:
 					maxT_ind = Tnew[:,0]>max(Tnew[:,0])-1
 				else:
 					maxT_ind = Tnew[:,0]>(measurement_info['T_Limit_H']-1)
-				number_of_lim = maxT_ind.tolist().count(True)
-				limit = len(Tnew[:,0])-number_of_lim-1-start_index
-
-				max_Temp = tnew[limit]*measurement_info['heat_rate']+measurement_info['offs']
-				T_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
-				tmax = tnew[limit]
+					
+				if usecoolrate_flag == True:
+					limit = len(Tnew[:,0])-1
+					max_Temp = (tnew[limit]-tnew[0])*-measurement_info['cool_rate']+Tnew[0,0]
+					T_perioden = int((tnew[limit]-tnew[0])/(fit_periods/measurement_info['freq']))
+					tmax = tnew[limit]-tnew[0]
+					satzlaenge = limit/T_perioden
+				else:
+					number_of_lim = maxT_ind.tolist().count(True)
+					limit = len(Tnew[:,0])-number_of_lim-1-start_index
+					max_Temp = tnew[limit]*measurement_info['heat_rate']+measurement_info['offs']
+					T_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
+					tmax = tnew[limit]
+				
 				satzlaenge = limit/T_perioden
+				print(satzlaenge)
 				
 				print(line)
 				print("\ntemperature fit ...")
@@ -1066,8 +1080,10 @@ else:
 				print("\ncurrent fit ...")
 				
 				#initialize fit variables
-				I_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
-				satzlaenge = limit/I_perioden
+					
+#				I_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
+				#satzlaenge = limit/I_perioden
+				I_perioden = T_perioden
 					
 				Iparams = Parameters()
 				Iparams.add('amp', value=1e-11)
