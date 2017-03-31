@@ -951,6 +951,7 @@ else:
 				print("Area: %e m2" % area)
 				print("\n"+line)
 				
+				usecoolrate_flag = False
 				if measurement_info['cool_rate'] != 0:
 					choise_rate = raw_input('use "cool" or "heat" rate?:')
 					if choise_rate == 'cool':
