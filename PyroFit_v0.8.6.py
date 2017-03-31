@@ -20,13 +20,19 @@
 # Import modules------------------------------------------------------------------------------------------------------------
 from pylab import *
 from tubafcdpy import *
+from matplotlib import __version__
 import glob, sys, os, datetime
-from scipy.interpolate import interp1d, interp2d
-from scipy.signal import argrelmax, argrelmin
-from warnings import filterwarnings
+from scipy.interpolate import interp1d
+#from scipy.signal import argrelmax, argrelmin
+#from warnings import filterwarnings
 from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
+
+# Check Matplotlib Version
+if int(__version__[0]) == 2:
+	style.use('classic')											# get old mpl style, if installed also my 'science' style can be used
+	
 # Operator Information------------------------------------------------------------------------------------------------------
 now = datetime.datetime.now()
 operator = {
