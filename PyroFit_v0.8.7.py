@@ -50,7 +50,7 @@ current_filter_flag = True
 calculate_data_from_fit_flag = False						#True = saving fit as data points to txt file for I_pyro and I_TSC
 PS_flag = False												#flag if PS should be calculated from p(T)
 BR_flag = False												#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 200											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 400											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False										#for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5									#time grid for interpolation (in sec)
 fit_periods = 1												#how many periods have to fitted with sine wave in SinLinRamp
@@ -110,9 +110,9 @@ area_d13_old = 1.3994e-4									#for large Edwards shadow mask (d=13,...mm), e.
 area_d15_old = 1.761e-4										#for single crystals with d=15mm
 
 #costums (in m2)
-custom = 6.419143e-5										#custorm values which has to be stored but no included in the list above
+custom = 2.03333e-5									#custorm values which has to be stored but no included in the list above
 #custom area_error (in m2)
-custom_error = 2.992876e-7									#area error for custom
+custom_error = 1.452e-7								#area error for custom
 
 
 # Functions-----------------------------------------------------------------------------------------------------------------
@@ -452,8 +452,8 @@ def linear(params, x, data=None):
 	input: Parameter dict (lmfit)
 	output: model
 	"""
-	a = params['a'].value
-	b = params['b'].value
+	a = params['slope'].value
+	b = params['offs'].value
 	model = a*x + b
 	if data==None:
 		return model
@@ -726,9 +726,9 @@ else:
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#LinearRamp Method
-		elif measurement_info['waveform'] == "LinRamp":
+		elif measurement_info['waveform'] == "LinearRamp":
 			print "Mode:\t\tLinRamp"
-			print "Temperature:\t%.1fK\nSlope:\t%.1fK/h" % (measurement_info['offs'],measurement_info['heat_rate']*3600)
+			print "Temperature:\t%.1fK - %.1fK\nSlope:\t%.1fK/h" % (measurement_info['offs'],max(Tdata[:,1]),measurement_info['heat_rate']*3600)
 
 			#Interpolation of data -----------------
 			print line
@@ -740,13 +740,47 @@ else:
 			bild, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
 			#text box
-			box_text = "Temperature: "+str(measurement_info['offs']) + "K\nSlope: " + str(measurement_info['heat_rate']*3600) + "K/h"
+			box_text = "Temperature: "+str(measurement_info['offs']) +' - ' + str(round(max(Tdata[:,1]),2)) + "K \nSlope: " + str(measurement_info['heat_rate']*3600) + " K/h"
 			box = plot_textbox(box_text)
 			ax2.add_artist(box)
 			show()
+			
+			#---------------------------------------------------------------------------------------------------------------
+			input = raw_input("fit? [y/n]")
+			if input == "y":
+				
+				area, area_error = get_area()
+				print line
+				print "... fitting"
+			
+				#Byer Roundy evaluation
+				head = date+"_"+samplename+"_"+T_profile+'p(T)'
+				bild2 = figure(head, figsize=fig_size)
+				axp = bild2.add_subplot(111)
+				
+				#initialize list and dicts for fit
+				start = start_index
+				end = len(Tnew[:,0])-1
+				
+				Params = Parameters()
+				Params.add('offs', value=measurement_info['offs'], min=273.0)
+				Params.add('slope', value=measurement_info['heat_rate'])
+				Tresults = minimize(linear, Params, args=(tnew[start:end], Tnew[start:end,0]), method="leastsq")
+				ax1.plot(tnew[start:],linear(Params,tnew[start:]),color=temp_color,linestyle='-',label="T-Fit (down)")
+				
+				pyro_koeff = abs(Inew) / (area * Params['slope'].value)	
+				
+				axp.plot(Tnew,pyro_koeff*1e6,color=temp_color,marker=".",linestyle="", label='p (BR)')
+				axp.set_xlabel('Temperature (K)',size=label_size)
+				axp.set_ylabel(u"p (µC/Km²)",color=temp_color,size=label_size)
+				axp.grid(b=None, which='major', axis='both', color='grey')
+				axp.set_xlim(273,max(Tnew[:,0]))
 
+				bild2.tight_layout()
+				
 			saving_figure(bild)
-
+			saving_figure(bild2,pbild=True)
+			
 		#---------------------------------------------------------------------------------------------------------------------
 		#SineWave Method
 		elif measurement_info['waveform'] == "SineWave":
