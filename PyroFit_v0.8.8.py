@@ -110,10 +110,9 @@ area_d13_old = 1.3994e-4									#for large Edwards shadow mask (d=13,...mm), e.
 area_d15_old = 1.761e-4										#for single crystals with d=15mm
 
 #costums (in m2)
-custom = 2.03333e-5									#custorm values which has to be stored but no included in the list above
+custom =7.566000e-06								#custorm values which has to be stored but no included in the list above
 #custom area_error (in m2)
-custom_error = 1.452e-7								#area error for custom
-
+custom_error = 5.948669e-08								#area error for custom
 
 # Functions-----------------------------------------------------------------------------------------------------------------
 # file functions -----------------------------------------------------------------------------------------------------------
@@ -1131,8 +1130,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 					
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('slope', value=1e-10)
+				Iparams_lin.add('offs', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -1567,8 +1566,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('slope', value=1e-10)
+				Iparams_lin.add('offs', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -2259,8 +2258,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('slope', value=1e-10)
+				Iparams_lin.add('offs', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
