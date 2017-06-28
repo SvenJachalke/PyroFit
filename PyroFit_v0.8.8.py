@@ -114,7 +114,6 @@ custom = 2.49e-5									#custorm values which has to be stored but no included 
 #custom area_error (in m2)
 custom_error = 1e-10								#area error for custom
 
-
 # Functions-----------------------------------------------------------------------------------------------------------------
 # file functions -----------------------------------------------------------------------------------------------------------
 def extract_date(filename):
@@ -1128,8 +1127,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 					
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('slope', value=1e-10)
+				Iparams_lin.add('offs', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -1564,8 +1563,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('slope', value=1e-10)
+				Iparams_lin.add('offs', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -2256,8 +2255,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('slope', value=1e-10)
+				Iparams_lin.add('offs', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
