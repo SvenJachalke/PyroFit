@@ -50,10 +50,10 @@ current_filter_flag = True
 calculate_data_from_fit_flag = False						#True = saving fit as data points to txt file for I_pyro and I_TSC
 PS_flag = False												#flag if PS should be calculated from p(T)
 BR_flag = False												#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 400											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 600												#start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False										#for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5									#time grid for interpolation (in sec)
-fit_periods = 1												#how many periods have to fitted with sine wave in SinLinRamp
+fit_periods = 2												#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]	#start parameters for current fit [amp, freq, phase, offs, slope]
 Ifit_counter_limit = 5										#repeat number when I-fit insufficient
 sigma = 3													#error level
@@ -110,9 +110,9 @@ area_d13_old = 1.3994e-4									#for large Edwards shadow mask (d=13,...mm), e.
 area_d15_old = 1.761e-4										#for single crystals with d=15mm
 
 #costums (in m2)
-custom = 2.03333e-5									#custorm values which has to be stored but no included in the list above
+custom = 2.49e-5									#custorm values which has to be stored but no included in the list above
 #custom area_error (in m2)
-custom_error = 1.452e-7								#area error for custom
+custom_error = 1e-10								#area error for custom
 
 
 # Functions-----------------------------------------------------------------------------------------------------------------
@@ -452,8 +452,8 @@ def linear(params, x, data=None):
 	input: Parameter dict (lmfit)
 	output: model
 	"""
-	a = params['slope'].value
-	b = params['offs'].value
+	a = params['a'].value
+	b = params['b'].value
 	model = a*x + b
 	if data==None:
 		return model
@@ -1013,13 +1013,13 @@ else:
 					satzlaenge = limit/T_perioden
 				else:
 					number_of_lim = maxT_ind.tolist().count(True)
-					limit = len(Tnew[:,0])-number_of_lim-1-start_index
-					max_Temp = tnew[limit]*measurement_info['heat_rate']+measurement_info['offs']
-					T_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
+					limit = len(Tnew[:,0])-number_of_lim-1
+					max_Temp = (tnew[limit]+tnew[start_index])*measurement_info['heat_rate']+measurement_info['offs']
+					T_perioden = int((tnew[limit]-tnew[start_index])/(fit_periods/measurement_info['freq']))
 					tmax = tnew[limit]
 				
-				satzlaenge = limit/T_perioden
-				print(satzlaenge)
+				satzlaenge = (limit-start_index)/T_perioden
+				#print(satzlaenge)
 				
 				print(line)
 				print("\ntemperature fit ...")
@@ -1115,9 +1115,6 @@ else:
 				print("\ncurrent fit ...")
 				
 				#initialize fit variables
-					
-#				I_perioden = int(tnew[limit]/(fit_periods/measurement_info['freq']))
-				#satzlaenge = limit/I_perioden
 				I_perioden = T_perioden
 					
 				Iparams = Parameters()
@@ -1255,12 +1252,12 @@ else:
 					#Calc p
 					time = mean(tnew[start:ende])
 					if PartWiseTFit == True:
-						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[i-1,4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[i-1,4])+Tfit_down[i-1,3]	# Average Temp. in Interval
+						Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down[i-1,4] + Tfit_down[i-1,3]
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[i-1,0]*2*pi*abs(Tfit_down[i-1,1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[i-1,4]))												# p (Byer-Roundy)
 						perror = p_SG * rel_err(Tfit_down[i-1],Terror_down[i-1],Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
 					else:
-						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
+						Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down[4] + Tfit_down[3]
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[4]))												# p (Byer-Roundy)
 						perror = p_SG * rel_err(Tfit_down,Terror_down,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
@@ -1684,13 +1681,13 @@ else:
 							
 					#Calc p
 					if start <= turning_point_index:
-						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down_heat[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down_heat[4])+Tfit_down_heat[3]	# Average Temp. in Interval
+						Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down_heat[4] + Tfit_down_heat[3]
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_heat[0]*2*pi*abs(Tfit_down_heat[1]))
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_heat[4]))
 						perror = p_SG * rel_err(Tfit_down_heat,Terror_down_heat,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
 						turning_p_index = i
 					else:
-						Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down_cool[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down_cool[4])+Tfit_down_cool[3]	# Average Temp. in Interval
+						Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down_cool[4] + Tfit_down_cool[3]
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_cool[0]*2*pi*abs(Tfit_down_cool[1]))
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_cool[4]))
 						perror = p_SG * rel_err(Tfit_down_cool,Terror_down_cool,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)					
@@ -2374,7 +2371,7 @@ else:
 					
 					#Calc p
 					time = mean(tnew[start:ende])
-					Temp = (tnew[start_index+((i-1)*satzlaenge)]*Tfit_down[4])+(((tnew[start_index+((i-1)*satzlaenge)]-tnew[start_index+(i*satzlaenge)])/2)*Tfit_down[4])+Tfit_down[3]	# Average Temp. in Interval
+					Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down[4] + Tfit_down[3]					
 					p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 					p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[4]))												# p (Byer-Roundy)
 					perror = p_SG * rel_err(Tfit_down,Terror_down,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
