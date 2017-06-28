@@ -50,10 +50,10 @@ current_filter_flag = True
 calculate_data_from_fit_flag = False						#True = saving fit as data points to txt file for I_pyro and I_TSC
 PS_flag = False												#flag if PS should be calculated from p(T)
 BR_flag = False												#Flag for ByerRoundy Plot (False=not plotting)
-start_index = 600												#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 200												#start index for fit/plot (100 = 50s, because 2 indices = 1s)
 single_crystal = False										#for single crystals phase=90deg ... thermal contact correction
 interpolation_step = 0.5									#time grid for interpolation (in sec)
-fit_periods = 2												#how many periods have to fitted with sine wave in SinLinRamp
+fit_periods = 1												#how many periods have to fitted with sine wave in SinLinRamp
 start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]	#start parameters for current fit [amp, freq, phase, offs, slope]
 Ifit_counter_limit = 5										#repeat number when I-fit insufficient
 sigma = 3													#error level
@@ -62,10 +62,14 @@ warnings.filterwarnings("ignore")							#ignores warnings
 ion()
 
 # Altered setting for Fit -------------------------------------------------------------------------------------------------------------
-Formation = True											#If TRUE an OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
-															#Used for SrTiO3 Formation (under electric field)
+Formation = False											#If TRUE and OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
+																#Used for SrTiO3 Formation (under electric field)
+															
+Resistance = True 										#If True and OnPerm / Calculation of R(T)
+
+
 PartWiseTFit = False										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
-															#as the current (same interval!) and not over the whole range
+																#as the current (same interval!) and not over the whole range
 															
 # General Settings----------------------------------------------------------------------------------------------------------
 # Plot Settings-------------------------------------------------------------------------------------------------------------
@@ -406,6 +410,9 @@ def saving_figure(bild, pbild=False):
 	elif pbild == "Polarize":
 		image_name = date+'_'+samplename+'_Polarize'
 		print("...Temperature/Polarization Plot\n%s.%s" % (image_name,export_format))
+	elif pbild == 'Resistance':
+		image_name = date+'_'+samplename+'_Resistance'
+		print("...Temperature/Resistance Plot\n%s.%s" % (image_name,export_format))
 	else:
 		image_name = date+"_"+samplename+"_"+T_profile+"_p"
 		print("...Pyro Plot\n%s.%s" %(image_name,export_format))
@@ -961,7 +968,7 @@ else:
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#SineWave+LinearRamp Method
-		elif measurement_info['waveform'] == "SineWave+LinRamp":
+		elif measurement_info['waveform'] == "SineWave+LinRamp" or measurement_info['waveform'] == "SineWave+LinearRamp":
 			print "Mode:\t\tSineWave+LinRamp"
 			print "Stimulation:\tA=%.1fK\n\t\tf=%.1fmHz\n\t\tO=%.1f-%.1fK\n\t\tb=%.2fK/h" % (measurement_info['amp'], measurement_info['freq']*1000, measurement_info['offs'],measurement_info['T_Limit_H'], measurement_info['heat_rate']*3600)
 
@@ -1127,8 +1134,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 					
 				Iparams_lin = Parameters()
-				Iparams_lin.add('slope', value=1e-10)
-				Iparams_lin.add('offs', value=0.0)
+				Iparams_lin.add('a', value=1e-10)
+				Iparams_lin.add('b', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -1563,8 +1570,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('slope', value=1e-10)
-				Iparams_lin.add('offs', value=0.0)
+				Iparams_lin.add('a', value=1e-10)
+				Iparams_lin.add('b', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -2158,7 +2165,7 @@ else:
 	#HighVoltage always on
 	elif measurement_info['hv_mode'] == "On":
 		#---------------------------------------------------------------------------------------------------------------------
-		if T_profile == "Thermostat" or T_profile == "SineWave" or T_profile == "SineWave+LinRamp" or T_profile == "TriangleHat" or T_profile == "LinearRamp" or T_profile == "SineWave+TriangleHat":
+		if T_profile == "Thermostat" or T_profile == "SineWave" or T_profile == "SineWave+LinRamp" or T_profile == "LinearRamp":
 			print "Mode:\t\t"+T_profile
 
 			#Interpolation and plotting of data ----
@@ -2169,13 +2176,32 @@ else:
 			# pre-fit plot
 			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
-
-			#text box
-			# box_text = "Temperature: "+str(measurement_info['offs']) + "K"
-			# box = plot_textbox(box_text)
-			# ax2.add_artist(box)
-			# bild.tight_layout()
-			# show()
+			
+			if Resistance == True:
+				for file in filelist:
+					if file.endswith('HVsetVoltage-HVmeasVoltage.log'):
+						filehandle = open(file)
+						fileline = filehandle.readline()
+						filehandle.close()
+				
+				V = float(fileline.split(' ')[-1].strip())
+				R = V/abs(Inew)
+				
+				bild2 = figure('R(T)',figsize=fig_size)
+				axR = bild2.add_subplot(111)
+				
+				axR.plot(Tnew[start_index:],R[start_index:],color=tubafgreen(),marker=".",linestyle="", label='Resistance')
+				axR.set_xlim(Tnew[start_index,0],Tnew[-1,0])
+				axR.set_yscale('log')
+				
+				axR.set_xlabel('$T$ (K)',size=label_size)
+				axR.set_ylabel('$R$ ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+				
+				axR.grid()
+				bild2.tight_layout()
+				show()
+				
+				saving_figure(bild2,pbild='Resistance')
 
 			if Formation == True:
 				print('formation measurement set true!')
@@ -2185,14 +2211,27 @@ else:
 				print("Area: %e m2" % area)
 				
 				#important calculations for further fit;)---------------------------------------------------------------
-				#check when ramp runs into T_Limit_H
+				#check when ramp run into T_Limit_H
+				if max(Tnew[:,0]) < measurement_info['T_Limit_H']:
+					maxT_ind = Tnew[:,0]>max(Tnew[:,0])-1
+				else:
+					maxT_ind = Tnew[:,0]>(measurement_info['T_Limit_H']-1)
+					
+				if usecoolrate_flag == True:
+					limit = len(Tnew[:,0])-1
+					max_Temp = (tnew[limit]-tnew[0])*-measurement_info['cool_rate']+Tnew[0,0]
+					T_perioden = int((tnew[limit]-tnew[0])/(fit_periods/measurement_info['freq']))
+					tmax = tnew[limit]-tnew[0]
+					satzlaenge = limit/T_perioden
+				else:
+					number_of_lim = maxT_ind.tolist().count(True)
+					limit = len(Tnew[:,0])-number_of_lim-1
+					max_Temp = (tnew[limit]+tnew[start_index])*measurement_info['heat_rate']+measurement_info['offs']
+					T_perioden = int((tnew[limit]-tnew[start_index])/(fit_periods/measurement_info['freq']))
+					tmax = tnew[limit]
 				
-				limit = len(Tnew[:,0])-1-start_index
-
-				max_Temp = tnew[limit]*measurement_info['heat_rate']+measurement_info['offs']
-				T_perioden = int(tnew[limit]/(1/measurement_info['freq']))
-				tmax = tnew[limit]
-				satzlaenge = limit/T_perioden
+				satzlaenge = (limit-start_index)/T_perioden
+				#print(satzlaenge)
 
 				print line
 				print "...fitting"
@@ -2255,8 +2294,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('slope', value=1e-10)
-				Iparams_lin.add('offs', value=0.0)
+				Iparams_lin.add('a', value=1e-10)
+				Iparams_lin.add('b', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -2474,8 +2513,57 @@ else:
 			else:
 				saving_figure(bild1)
 
+		elif T_profile == "TriangleHat+SineWave" or T_profile == "TriangleHat":
+			print "Mode:\t\t"+T_profile
+			
+			if Resistance == True:
+
+				#Interpolation and plotting of data ----
+				print line
+				print "...plotting"
+				print line
+	
+				# pre-fit plot
+				tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+				
+				if Resistance == True:
+					for file in filelist:
+						if file.endswith('HVsetVoltage-HVmeasVoltage.log'):
+							filehandle = open(file)
+							fileline = filehandle.readline()
+							filehandle.close()
+					
+					V = float(fileline.split(' ')[-1].strip())
+					R = V/abs(Inew)
+					
+					turning_point_index = argmax(Tnew[:,0])
+					
+					bild2 = figure('R(T)',figsize=fig_size)
+					axR = bild2.add_subplot(111)
+					
+					axR.plot(Tnew[start_index:turning_point_index],R[start_index:turning_point_index],color=tubafgreen(),marker=".",linestyle="", label='heating')
+					axR.plot(Tnew[turning_point_index:],R[turning_point_index:],color=tubafcyan(),marker=".",linestyle="", label='cooling')
+
+					axR.set_xlim(Tnew[start_index,0],Tnew[turning_point_index,0])
+					axR.set_yscale('log')
+					axR.legend()
+				
+					axR.set_xlabel('$T$ (K)',size=label_size)
+					axR.set_ylabel('$R$ ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+					
+					axR.grid()
+					bild2.tight_layout()
+					show()
+					
+					saving_figure(bild1)
+					saving_figure(bild2,pbild='Resistance')
+					
+			else:
+				print('Just resistance calculation implemented in these waveforms implemented yet!')
+
 		else:
-			print "Mode not implemented yet ..."
+			print("Mode not implemented yet ...")
 
 	#-----------------------------------------------------------------------------------------------------------------------------
 	#for every other
