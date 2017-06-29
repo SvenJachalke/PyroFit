@@ -54,8 +54,8 @@ custom = 2.49e-5
 custom_error = 1e-10
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-start_index = 200											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
-fit_periods = 1												#how many periods have to fitted with sine wave in SinLinRamp
+start_index = 100											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+fit_periods = 2												#how many periods have to fitted with sine wave in SinLinRamp
 sigma = 3													#error level
 
 upper_I_lim = 1e-3											#limitation of current in plot and fit (for spikes, ...)
@@ -78,7 +78,7 @@ Formation = False											#If TRUE and OnPerm / SineWave Method will be evalua
 Resistance = False 										 	#If True and OnPerm / Calculation of R(T)
 															#Maybe needs some testing
 
-PartWiseTFit = False										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
+PartWiseTFit = True 										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
 															#as the current (same interval!) and not over the whole range
 															
 # Plot Settings-------------------------------------------------------------------------------------------------------------
@@ -353,14 +353,15 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 
 	#Plot Current
 	ax2.set_ylabel("Current (A)",color=curr_color,size=label_size)
-	ax2.set_xlim(ax1.get_xbound())
-	ax2.tick_params(axis='y', colors=curr_color)
-	ax2.autoscale(enable=True, axis='y', tight=None)
 	ax2.plot(tnew[start_index::set_skip_points()], Inew[start_index::set_skip_points()], marker=curr_linestyle[0], linestyle=curr_linestyle[1] ,color=curr_color, label="data")
 	ax2.legend(title="Currents", loc='lower right')
 	ax2.set_xlim(tnew[start_index])
 	ax2.locator_params(nbins=10,axis = 'y')
-	# ax2.add_artist(legT)
+	ax2.set_ylim(min(Inew[start_index:]),max(Inew[start_index:]))
+	ax2.tick_params(axis='y', colors=curr_color)
+	#ax1.set_zorder(+1)
+	#ax2.autoscale(enable=True, axis='y', tight=None)
+	#ax2.add_artist(legT)
 
 	bild.tight_layout()
 	show()
@@ -1043,7 +1044,7 @@ else:
 						sys.stdout.flush()
 						
 						#fit correction (amp/phase)
-						Tparams_down = amp_phase_correction(Tparams_down)	
+						Tparams_down = amp_phase_correction(Tresult_sin.params)	
 						
 						#plot
 						ax1.plot(tnew[start:ende], sinfunc(Tparams_down, tnew[start:ende]), color=temp_color, linestyle='-')
@@ -1128,6 +1129,10 @@ else:
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
+					# In case of partwise fit: give the Current Frequency the exact value from the temperature fit ... otherwise the phase will begin to oscillate!!!
+					if PartWiseTFit == True:
+						Iparams['freq'].value = Tfit_down[i-1,1]
+					
 					start = start_index+int((i*satzlaenge)-satzlaenge)
 					ende = start_index+int(i*satzlaenge)
 					
