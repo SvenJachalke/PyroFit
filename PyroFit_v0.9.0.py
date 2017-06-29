@@ -54,7 +54,7 @@ custom = 2.49e-5
 custom_error = 1e-10
 
 # User Settings-------------------------------------------------------------------------------------------------------------
-start_index = 100											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
+start_index = 300											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
 fit_periods = 2												#how many periods have to fitted with sine wave in SinLinRamp
 sigma = 3													#error level
 
@@ -71,16 +71,16 @@ start_parameters_curr = [1e-11, 0.002, 0.1, 1e-10, 1e-10]	#start parameters for 
 Ifit_counter_limit = 5										#repeat number when I-fit insufficient
 warnings.filterwarnings("ignore")							#ignores warnings
 
-# Alternatives for calculation for Fit-------------------------------------------------------------------------------------
+# Alternatives for calculations --------------------------------------------------------------------------------------------
 Formation = False											#If TRUE and OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
 															#Used for SrTiO3 Formation (under electric field)
 															
 Resistance = False 										 	#If True and OnPerm / Calculation of R(T)
 															#Maybe needs some testing
 
-PartWiseTFit = True 										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
+PartWiseTFit = False 										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
 															#as the current (same interval!) and not over the whole range
-															
+
 # Plot Settings-------------------------------------------------------------------------------------------------------------
 # Check Matplotlib Version--------------------------------------------------------------------------------------------------
 if int(__version__[0]) == 2:
@@ -1030,7 +1030,7 @@ else:
 					Tparams_down.add('phase', value=0.1)
 					Tparams_down.add('offs', value=measurement_info['offs'], min=0.0)
 					Tparams_down.add('slope', value=measurement_info['heat_rate'])
-				
+		
 					#perform partial fit
 					for i in arange(1,T_perioden):
 						start = start_index+int((i*satzlaenge)-satzlaenge)
@@ -1051,6 +1051,7 @@ else:
 						
 						#extract params dict to lists
 						Tfit_down_temp, Terror_down_temp = extract_fit_relerr_params(Tparams_down)
+							
 						if i==1:
 							Tfit_down = array([Tfit_down_temp])
 							Terror_down = array([Terror_down_temp])
@@ -1059,7 +1060,7 @@ else:
 							Tfit_down = append(Tfit_down,[array(Tfit_down_temp)],axis=0)
 							Terror_down = append(Terror_down,[array(Terror_down_temp)],axis=0)
 							Tresults_down.append(Tresult_sin)
-					
+														
 						Tparams_down['phase'].value=Tfit_down[i-1,2]
 						Tparams_down['phase'].vary=False
 					
@@ -1100,7 +1101,7 @@ else:
 						#file output
 						fileprint_fit(log,Tparams_high,"Temperature (High)")
 
-					leg_T = ax1.legend(loc="upper right",title='temperatures')
+					leg_T = ax1.legend(loc="upper right",title='Temperatures')
 					#ax2.add_artist(leg_T)
 					draw()
 					
@@ -1444,8 +1445,8 @@ else:
 			show()
 
 			#save figure
-			print line
-			print "...saving figure"
+			print(line)
+			print("...saving figure")
 			saving_figure(bild1)
 
 		#SineWave+TriangleHat--------------------------------------------------------------------------------------------
