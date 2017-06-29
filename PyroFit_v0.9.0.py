@@ -78,7 +78,7 @@ Formation = False											#If TRUE and OnPerm / SineWave Method will be evalua
 Resistance = False 										 	#If True and OnPerm / Calculation of R(T)
 															#Maybe needs some testing
 
-PartWiseTFit = False 										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
+PartWiseTFit = True 										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
 															#as the current (same interval!) and not over the whole range
 
 # Plot Settings-------------------------------------------------------------------------------------------------------------
@@ -990,11 +990,8 @@ else:
 				print("...fitting")
 				if PartWiseTFit == True:
 					print("Partwise Temp.Fit enabled!")
-				
-				#-----------------------------------------------------------------------------------------------------------------------------
-				# Fit over whole temperature range -------------------------------------------------------------------------------------
-				
-				#important calculations for further fit;)---------------------------------------------------------------
+								
+				#important calculations for further fit;)
 				#check when ramp run into T_Limit_H
 				if max(Tnew[:,0]) < measurement_info['T_Limit_H']:
 					maxT_ind = Tnew[:,0]>max(Tnew[:,0])-1
@@ -1027,7 +1024,7 @@ else:
 					Tparams_down = Parameters()
 					Tparams_down.add('amp', value=measurement_info['amp'],min=0.0)
 					Tparams_down.add('freq', value=measurement_info['freq'], min=1e-5, max=0.2)
-					Tparams_down.add('phase', value=0.1)
+					Tparams_down.add('phase', value=0.1, vary=True)
 					Tparams_down.add('offs', value=measurement_info['offs'], min=0.0)
 					Tparams_down.add('slope', value=measurement_info['heat_rate'])
 		
@@ -1062,7 +1059,7 @@ else:
 							Tresults_down.append(Tresult_sin)
 														
 						Tparams_down['phase'].value=Tfit_down[i-1,2]
-						Tparams_down['phase'].vary=False
+						#Tparams_down['phase'].vary=False
 					
 					header_string = "Amp [I]\t\t\tFreq [Hz]\t\t\tPhase [rad]\t\t\tOffset [A]\t\t\tSlope [A/s]\t\t\tAmp_Err [A]\t\t\tFreq_Err [Hz]\t\t\tPhase_Err [rad]\t\t\tOffs_Err [A]\t\t\tSlope_Err [A/s]"
 					savetxt(date+"_"+samplename+"_"+T_profile+"_T-Fit-partwise.txt",hstack([Tfit_down,Terror_down]), delimiter="\t", header=header_string)
