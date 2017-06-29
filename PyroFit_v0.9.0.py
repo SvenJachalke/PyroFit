@@ -1585,7 +1585,10 @@ else:
 					if Iresult_lin.redchi < 2*Iresult_sin.redchi and Ifit_counter < Ifit_counter_limit:
 						
 						Iparams['amp'].value = (Ifit_counter)*1e-12
-						Iparams['phase'].value = Tfit_down[2]-pi/2
+						if i<turning_point_index:
+							Iparams['phase'].value = Tfit_down_heat[2]-pi/2
+						else:
+							Iparams['phase'].value = Tfit_down[2]-pi/2
 						#Iparams['offs'].value = (Ifit_counter**2)*1e-10
 						#Iparams['slope'].value = (Ifit_counter**2)*1e-10
 						
@@ -1616,7 +1619,10 @@ else:
 
 					#calculate phase difference
 					if single_crystal==False:
-						phi_T = Tfit_down[2]
+						if i<turning_point_index:
+							phi_T = Tfit_down_heat[2]
+						else:
+							phi_T = Tfit_down_cool[2]
 						phi_I = Ifit[i-1,2]
 						
 						# if abs(phi_I) > abs(phi_T):
