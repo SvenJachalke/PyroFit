@@ -1156,16 +1156,12 @@ else:
 					if Iresult_lin.redchi < 2*Iresult_sin.redchi and Ifit_counter < Ifit_counter_limit:
 						
 						Iparams['amp'].value = (Ifit_counter)*1e-12
-						if i < T_perioden_heat:
-							if PartWiseTFit == True:
-								Iparams['phase'].value = Tfit_down_heat[i-1,2]-pi/2
-							else:
-								Iparams['phase'].value = Tfit_down_heat[2]-pi/2
+
+						if PartWiseTFit == True:
+							Iparams['phase'].value = Tfit_down[i-1,2]-pi/2
 						else:
-							if PartWiseTFit == True:
-								Iparams['phase'].value = Tfit_down_cool[i-1-T_perioden_heat,2]-pi/2
-							else:
-								Iparams['phase'].value = Tfit_down_cool[2]-pi/2
+							Iparams['phase'].value = Tfit_down[2]-pi/2
+
 						Iparams['offs'].value = (Ifit_counter**2)*1e-10
 						Iparams['slope'].value = (Ifit_counter**2)*1e-10
 						
