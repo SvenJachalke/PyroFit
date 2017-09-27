@@ -28,7 +28,7 @@ from scipy.interpolate import interp1d
 from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
-version = '0.9.0'
+version = '0.9.1'
 ion()
 
 # Operator Information------------------------------------------------------------------------------------------------------
@@ -528,7 +528,7 @@ def rel_err(Tfit, Terror, Ifit, Ierror, area, area_error, phasediff, Xsigma=1):
 	Calculates relative maximum error 
 	"""
 	
-	phasediff_error = Terror[2]+Ierror[2]
+	phasediff_error = abs(Terror[2])+abs(Ierror[2])
 	# rel err = dp/p .... I_Amp	phi	A	T_Amp	f	
 	rel_err = Xsigma*(abs(Ierror[0]/Ifit[0]) + abs(phasediff_error/(tan(phasediff))) + abs(area_error/area) + abs(Terror[0]/Tfit[0]) + abs(Terror[1]/Tfit[1]))
 		
@@ -1017,7 +1017,6 @@ else:
 					tmax = tnew[limit]
 				
 				satzlaenge = (limit-start_index)/T_perioden
-				#print(satzlaenge)
 				
 				print(line)
 				print("temperature fit ...")
@@ -1029,7 +1028,7 @@ else:
 					Tparams_down = Parameters()
 					Tparams_down.add('amp', value=measurement_info['amp'],min=0.0)
 					Tparams_down.add('freq', value=measurement_info['freq'], min=1e-5, max=0.2)
-					Tparams_down.add('phase', value=0.1, vary=True)
+					Tparams_down.add('phase', value=0.1, vary=True,min=0,max=2*pi)
 					Tparams_down.add('offs', value=measurement_info['offs'], min=0.0)
 					Tparams_down.add('slope', value=measurement_info['heat_rate'])
 		
@@ -1038,8 +1037,8 @@ else:
 						start = start_index+int((i*satzlaenge)-satzlaenge)
 						ende = start_index+int(i*satzlaenge)
 					
-						#fit of sin
-						Tresult_sin = minimize(sinfunc, Tparams_down, args=(tnew[start:ende], Tnew[start:ende,0]), method="leastsq")
+						# fit performed at t=0
+						Tresult_sin = minimize(sinfunc, Tparams_down, args=(tnew[start:ende]-tnew[start], Tnew[start:ende,0]), method="leastsq")
 					
 						#console status
 						sys.stdout.write("\rProgress: %d/%d; %.0f %%" % (i,T_perioden-1,100*float(i)/float(T_perioden-1)))
@@ -1049,7 +1048,7 @@ else:
 						Tparams_down = amp_phase_correction(Tresult_sin.params)	
 						
 						#plot
-						ax1.plot(tnew[start:ende], sinfunc(Tparams_down, tnew[start:ende]), color=temp_color, linestyle='-')
+						ax1.plot(tnew[start:ende], sinfunc(Tparams_down, tnew[start:ende]-tnew[start]), color=temp_color, linestyle='-')
 						
 						#extract params dict to lists
 						Tfit_down_temp, Terror_down_temp = extract_fit_relerr_params(Tparams_down)
@@ -1144,10 +1143,10 @@ else:
 						polarityI = "neg"
 					else:
 						polarityI = "pos"
-					
-					#fit of sin and lin func
-					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
-					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+
+					# fit performed at t=0
+					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
+					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 					
 					Iparams = Iresult_sin.params
 
@@ -1165,7 +1164,7 @@ else:
 						Iparams['offs'].value = (Ifit_counter**2)*1e-10
 						Iparams['slope'].value = (Ifit_counter**2)*1e-10
 						
-						Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+						Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 						
 						Ifit_counter =  Ifit_counter + 1
 
@@ -1176,8 +1175,8 @@ else:
 					#fit correction (amp/phase)
 					Iparams = amp_phase_correction(Iparams)	
 					
-					#plot of sin and line fit
-					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]), 'r-')
+					#plot of sin and lin fit
+					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]-tnew[start]), 'r-')
 				
 					#extract params dict to lists
 					Ifit_temp, Ierror_temp = extract_fit_relerr_params(Iparams)
@@ -1219,11 +1218,11 @@ else:
 					nonpyroparams.add('offs', value=Ifit[i-1,3])
 					nonpyroparams.add('slope', value=Ifit[i-1,4])
 					nonpyroparams = amp_phase_correction(nonpyroparams)
-					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]), color=np_color,linestyle='-')
+					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]-tnew[start]), color=np_color,linestyle='-')
 					
 					#Calculating Data from Fit - TSC
 					if calculate_data_from_fit_flag == True:
-						TSC = (array([tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende])])).T		#transpose!
+						TSC = (array([tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]-tnew[start])])).T		#transpose!
 						if i==1:
 							I_TSC = TSC
 						else:
@@ -1243,17 +1242,17 @@ else:
 					pyroparams.add('offs', value=Ifit[i-1,3])
 					pyroparams.add('slope', value=Ifit[i-1,4])
 					pyroparams = amp_phase_correction(pyroparams)
-					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), color=p_color,linestyle='-')
+					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]-tnew[start]), color=p_color,linestyle='-')
 					
 					#Calculating Data from Fit - Pyro
 					if calculate_data_from_fit_flag == True:
-						pyro = (array([tnew[start:ende], sinfunc(pyroparams, tnew[start:ende])])).T		#transpose!
+						pyro = (array([tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]-tnew[start])])).T		#transpose!
 						if i==1:
 							I_pyro = pyro
 						else:
 							I_pyro = append(I_pyro, pyro, axis=0)
 					
-					#Calc p
+					#Calc p (array)
 					time = mean(tnew[start:ende])
 					if PartWiseTFit == True:
 						Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down[i-1,4] + Tfit_down[i-1,3]
@@ -1265,7 +1264,6 @@ else:
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[4]))												# p (Byer-Roundy)
 						perror = p_SG * rel_err(Tfit_down,Terror_down,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
-						
 					phasediff = degrees(phasediff)																							# Phasediff. (in deg)
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*-sin(radians(phasediff)))/(Ifit[i-1,0]*cos(radians(phasediff))))	# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])																					# mean I in Interval
@@ -1335,13 +1333,15 @@ else:
 				ax7.grid(b=None, which='major', axis='both', color='grey')
 				ax7.set_xlabel('Temperature (K)',size=label_size)
 				ax7.set_ylabel(ur"$\phi$ (°)",color=other,size=label_size)
-				ax7.plot(p[:,1],p[:,4],color=other,marker=".",linestyle="", label="Phasediff.")
+				ax7.errorbar(p[:,1],p[:,4],yerr=(abs(Terror_down[:,2])+abs(Ierror[:,2])),color=other,marker=".",linestyle="", label="Phasediff.")
 				
 				#CurrAmp---------------------------------------------------------------
 				ax8 = ax7.twinx()
 				ax8.set_xlim(ax3.get_xbound())
-				ax8.plot(p[:,1],Ifit[:,0], color=curr_color,marker=".", linestyle="", label="Amplitude")
-				ax8.set_ylabel(r"$I_{\mathrm{Amp}}$ (A)",color=curr_color,size=label_size)
+				ax8.errorbar(p[:,1],Ifit[:,0],yerr=abs(Ierror[:,0]),color=curr_color,marker=".", linestyle="", label="Ampl.")
+				ax8.errorbar(p[:,1],Ifit[:,3],yerr=abs(Ierror[:,3]),color=curr_color,marker="*", linestyle="", label="Off.")
+				ax8.set_ylabel(r"$I$ (A)",color=curr_color,size=label_size)
+				ax8.legend(fontsize=fontsize_box,loc=3)
 
 				bild2.tight_layout()
 				
@@ -1524,9 +1524,9 @@ else:
 						#fit for heating
 						if i < T_perioden_heat:	
 							#heating				
-							Tresult_sin_heat = minimize(sinfunc, Tparams_down_heat, args=(tnew[start:ende], Tnew[start:ende,0]), method="leastsq")
+							Tresult_sin_heat = minimize(sinfunc, Tparams_down_heat, args=(tnew[start:ende]-tnew[start], Tnew[start:ende,0]), method="leastsq")
 							Tparams_down_heat = amp_phase_correction(Tresult_sin_heat.params)
-							ax1.plot(tnew[start:ende], sinfunc(Tparams_down_heat, tnew[start:ende]), color=temp_color, linestyle='-')
+							ax1.plot(tnew[start:ende], sinfunc(Tparams_down_heat, tnew[start:ende]-tnew[start]), color=temp_color, linestyle='-')
 							Tfit_down_temp, Terror_down_temp = extract_fit_relerr_params(Tparams_down_heat)
 							if i==1:
 								Tfit_down_heat = array([Tfit_down_temp])
@@ -1542,9 +1542,9 @@ else:
 
 						# fit for cooling
 						else:
-							Tresult_sin_cool = minimize(sinfunc, Tparams_down_cool, args=(tnew[start:ende], Tnew[start:ende,0]), method="leastsq")
+							Tresult_sin_cool = minimize(sinfunc, Tparams_down_cool, args=(tnew[start:ende]-tnew[start], Tnew[start:ende,0]), method="leastsq")
 							Tparams_down_cool = amp_phase_correction(Tresult_sin_cool.params)
-							ax1.plot(tnew[start:ende], sinfunc(Tparams_down_cool, tnew[start:ende]), color=temp_color, linestyle='-')
+							ax1.plot(tnew[start:ende], sinfunc(Tparams_down_cool, tnew[start:ende]-tnew[start]), color=temp_color, linestyle='-')
 							Tfit_down_temp, Terror_down_temp = extract_fit_relerr_params(Tparams_down_cool)
 							if i==T_perioden_heat:
 								Tfit_down_cool = array([Tfit_down_temp])
@@ -1667,8 +1667,8 @@ else:
 						polarityI = "pos"
 						
 					#fit of sin and lin func
-					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
-					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
+					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 					
 					Iparams = Iresult_sin.params
 					
@@ -1690,7 +1690,7 @@ else:
 						#Iparams['offs'].value = (Ifit_counter**2)*1e-10
 						#Iparams['slope'].value = (Ifit_counter**2)*1e-10
 						
-						Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende], Inew[start:ende]), method="leastsq")
+						Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 						
 						Ifit_counter =  Ifit_counter + 1
 
@@ -1702,8 +1702,8 @@ else:
 					Iparams = amp_phase_correction(Iparams)
 					
 					#plot of sin and line fit
-					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]), 'r-')
-					ax2.plot(tnew[start:ende], linear(Iparams_lin, tnew[start:ende]), 'r--')
+					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]-tnew[start]), 'r-')
+					ax2.plot(tnew[start:ende], linear(Iparams_lin, tnew[start:ende]-tnew[start]), 'r--')
 				
 					#extract params dict to lists
 					Ifit_temp, Ierror_temp = extract_fit_relerr_params(Iparams)
@@ -1773,11 +1773,11 @@ else:
 					nonpyroparams.add('offs', value=Ifit[i-1,3])
 					nonpyroparams.add('slope', value=Ifit[i-1,4])
 					nonpyroparams = amp_phase_correction(nonpyroparams)
-					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]), color=np_color,linestyle='-')
+					ax2.plot(tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]-tnew[start]), color=np_color,linestyle='-')
 					
 					#Calculating Data from Fit - TSC
 					if calculate_data_from_fit_flag == True:
-						TSC = (array([tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende])])).T		#transpose!
+						TSC = (array([tnew[start:ende], sinfunc(nonpyroparams, tnew[start:ende]-tnew[start])])).T		#transpose!
 						if i==1:
 							I_TSC = TSC
 						else:
@@ -1803,11 +1803,11 @@ else:
 					pyroparams.add('offs', value=Ifit[i-1,3])
 					pyroparams.add('slope', value=Ifit[i-1,4])
 					pyroparams = amp_phase_correction(pyroparams)
-					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]), color=p_color,linestyle='-')
+					ax2.plot(tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]-tnew[start]), color=p_color,linestyle='-')
 					
 					#Calculating Data from Fit - Pyro
 					if calculate_data_from_fit_flag == True:
-						pyro = (array([tnew[start:ende], sinfunc(pyroparams, tnew[start:ende])])).T		#transpose!
+						pyro = (array([tnew[start:ende], sinfunc(pyroparams, tnew[start:ende]-tnew[start])])).T		#transpose!
 						if i==1:
 							I_pyro = pyro
 						else:
@@ -1817,12 +1817,12 @@ else:
 					#for heating branche
 					if i < T_perioden_heat:
 						if PartWiseTFit == True:
-							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down_heat[i-1,4] + Tfit_down_heat[i-1,3]
+							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)/2]) * Tfit_down_heat[i-1,4] + Tfit_down_heat[i-1,3]
 							p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_heat[i-1,0]*2*pi*abs(Tfit_down_heat[i-1,1]))
 							p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_heat[i-1,4]))
 							perror = p_SG * rel_err(Tfit_down_heat[i-1],Terror_down_heat[i-1],Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
 						else:
-							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down_heat[4] + Tfit_down_heat[3]
+							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)/2]) * Tfit_down_heat[4] + Tfit_down_heat[3]
 							p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_heat[0]*2*pi*abs(Tfit_down_heat[1]))
 							p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_heat[4]))
 							perror = p_SG * rel_err(Tfit_down_heat,Terror_down_heat,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
@@ -1830,15 +1830,16 @@ else:
 					#for cooling branche
 					else:
 						if PartWiseTFit == True:
-							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down_cool[i-1-T_perioden_heat,4] + Tfit_down_cool[i-1-T_perioden_heat,3]
+							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)/2]) * Tfit_down_cool[i-1-T_perioden_heat,4] + Tfit_down_cool[i-1-T_perioden_heat,3]
 							p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_cool[i-1-T_perioden_heat,0]*2*pi*abs(Tfit_down_cool[i-1-T_perioden_heat,1]))
 							p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_cool[i-1-T_perioden_heat,4]))
 							perror = p_SG * rel_err(Tfit_down_cool[i-1-T_perioden_heat],Terror_down_cool[i-1-T_perioden_heat],Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)			
 						else:
-							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down_cool[4] + Tfit_down_cool[3]
+							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)/2]) * Tfit_down_cool[4] + Tfit_down_cool[3]
 							p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_cool[0]*2*pi*abs(Tfit_down_cool[1]))
 							p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_cool[4]))
-							perror = p_SG * rel_err(Tfit_down_cool,Terror_down_cool,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)					
+							perror = p_SG * rel_err(Tfit_down_cool,Terror_down_cool,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)		
+		
 					phasediff = degrees(phasediff)					# Phasediff.
 					Ip_TSC_ratio= abs((Ifit[i-1,0]*sin(phasediff))/(Ifit[i-1,0]*cos(phasediff)))		# ratio Pyro/TSC
 					meanI = mean(Idata[start:ende,1])
