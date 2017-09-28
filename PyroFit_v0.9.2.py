@@ -1260,7 +1260,7 @@ else:
 					#Calc p (array)
 					time = mean(tnew[start:ende])
 					if PartWiseTFit == True:
-						Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down[i-1,4] + Tfit_down[i-1,3]
+						Temp = tnew[satzlaenge/2] * Tfit_down[i-1,4] + Tfit_down[i-1,3]
 						p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down[i-1,0]*2*pi*abs(Tfit_down[i-1,1]))						# p (Sharp-Garn) ... with - sin() ! (see manual) ;)
 						p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down[i-1,4]))												# p (Byer-Roundy)
 						perror = p_SG * rel_err(Tfit_down[i-1],Terror_down[i-1],Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
