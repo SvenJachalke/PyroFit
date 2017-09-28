@@ -29,7 +29,8 @@ from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 version = '0.9.1'
-ion()
+ion()				# interactive on
+close('all')		# close all current/open figures
 
 # Operator Information------------------------------------------------------------------------------------------------------
 now = datetime.datetime.now()
@@ -91,9 +92,9 @@ rcParams['legend.fancybox'] = True				 			#plot fancy box (round edges)
 print_signature = True										#print the operators signature at the bottom of the plot
 enable_title = True											#enable/disable title in plot
 
-label_size = '18'											#font size of x,y labels in plot in standard style
+label_size = '16'											#font size of x,y labels in plot in standard style
 title_size = '15'											#font size of the figure title in standard style
-fontsize_box = '12'											#font size in the text box in standard style
+fontsize_box = '11'											#font size in the text box in standard style
 
 fig_size = (12.0,9.0)										#size of figures (general aspect ratio 4:3!!!)
 set_dpi = 150							 					#dpi for exporting figures as png
@@ -364,14 +365,15 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 	#ax2.add_artist(legT)
 
 	bild.tight_layout()
-	show()
-	pause(0.1)
+	#pause(0.1)
 	
 	if print_signature == True:
 		bild.subplots_adjust(bottom=0.125)
 		signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
 		figtext(0.15,0.02,signature)
 	
+	show()
+
 	return bild, ax1, ax2
 def plot_textbox(boxtext):
 	"""
@@ -1146,6 +1148,9 @@ else:
 
 					# fit performed at t=0
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
+
+					Iparams_lin['a'].value = Iresult_sin.params['slope'].value
+					Iparams_lin['b'].value = Iresult_sin.params['offs'].value
 					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 					
 					Iparams = Iresult_sin.params
@@ -1310,8 +1315,8 @@ else:
 				ax5.set_xlim(ax3.get_xbound())
 				ax5.grid(b=None, which='major', axis='both', color='grey')
 				ax5.set_xlabel('Temperature (K)',size=label_size)
-				ax5.set_ylabel(r"I$_{p}$/I$_{np}$",color=volt_color,size=label_size)
-				ax5.semilogy(p[:,1], p[:,5], color=volt_color,marker=".",linestyle="", label=r"I$_{p}$/I$_{np}$")
+				ax5.set_ylabel(r"I$_{\mathrm{p}}$/I$_{\mathrm{np}}$",color=volt_color,size=label_size)
+				ax5.semilogy(p[:,1], p[:,5], color=volt_color,marker=".",linestyle="", label=r"I$_{\mathrm{p}}$/I$_{\mathrm{{np}}$")
 
 				#Chisqr---------------------------------------------------------------
 				ax6=subplot(224,sharex=ax3)
@@ -1319,7 +1324,7 @@ else:
 				ax6.set_xlim(ax3.get_xbound())
 				ax6.grid(b=None, which='major', axis='both', color='grey')
 				ax6.set_xlabel('Temperature (K)',size=label_size)
-				ax6.set_ylabel(r"$X^2 / A_I^2$",color='c',size=label_size)
+				ax6.set_ylabel(r"$X^2 / I_{\mathrm{Ampl.}}^2$",color='c',size=label_size)
 				ax6.semilogy(p[:,1], p[:,7], color=np_color,marker=".",linestyle="", label=r"$X^2$")
 
 				#Phasediff---------------------------------------------------------------
@@ -1339,7 +1344,7 @@ else:
 				ax8 = ax7.twinx()
 				ax8.set_xlim(ax3.get_xbound())
 				ax8.errorbar(p[:,1],Ifit[:,0],yerr=abs(Ierror[:,0]),color=curr_color,marker=".", linestyle="", label="Ampl.")
-				ax8.errorbar(p[:,1],Ifit[:,3],yerr=abs(Ierror[:,3]),color=curr_color,marker="*", linestyle="", label="Off.")
+				ax8.errorbar(p[:,1],Ifit[:,3],yerr=abs(Ierror[:,3]),color=p_color,marker="*", linestyle="", label="Off.")
 				ax8.set_ylabel(r"$I$ (A)",color=curr_color,size=label_size)
 				ax8.legend(fontsize=fontsize_box,loc=3)
 
@@ -1651,8 +1656,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('a', value=1e-12)
+				Iparams_lin.add('b', value=1e-10)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -1666,8 +1671,11 @@ else:
 					else:
 						polarityI = "pos"
 						
-					#fit of sin and lin func
+					#fit of sin and lin func (fit at t=0)
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
+
+					Iparams_lin['a'].value = Iresult_sin.params['slope'].value
+					Iparams_lin['b'].value = Iresult_sin.params['offs'].value
 					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 					
 					Iparams = Iresult_sin.params
@@ -1817,12 +1825,12 @@ else:
 					#for heating branche
 					if i < T_perioden_heat:
 						if PartWiseTFit == True:
-							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)/2]) * Tfit_down_heat[i-1,4] + Tfit_down_heat[i-1,3]
+							Temp = tnew[satzlaenge/2] * Tfit_down_heat[i-1,4] + Tfit_down_heat[i-1,3]
 							p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_heat[i-1,0]*2*pi*abs(Tfit_down_heat[i-1,1]))
 							p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_heat[i-1,4]))
 							perror = p_SG * rel_err(Tfit_down_heat[i-1],Terror_down_heat[i-1],Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
 						else:
-							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)/2]) * Tfit_down_heat[4] + Tfit_down_heat[3]
+							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down_heat[4] + Tfit_down_heat[3]
 							p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_heat[0]*2*pi*abs(Tfit_down_heat[1]))
 							p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_heat[4]))
 							perror = p_SG * rel_err(Tfit_down_heat,Terror_down_heat,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)
@@ -1830,12 +1838,12 @@ else:
 					#for cooling branche
 					else:
 						if PartWiseTFit == True:
-							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)/2]) * Tfit_down_cool[i-1-T_perioden_heat,4] + Tfit_down_cool[i-1-T_perioden_heat,3]
+							Temp = tnew[satzlaenge/2] * Tfit_down_cool[i-1-T_perioden_heat,4] + Tfit_down_cool[i-1-T_perioden_heat,3]
 							p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_cool[i-1-T_perioden_heat,0]*2*pi*abs(Tfit_down_cool[i-1-T_perioden_heat,1]))
 							p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_cool[i-1-T_perioden_heat,4]))
 							perror = p_SG * rel_err(Tfit_down_cool[i-1-T_perioden_heat],Terror_down_cool[i-1-T_perioden_heat],Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)			
 						else:
-							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)/2]) * Tfit_down_cool[4] + Tfit_down_cool[3]
+							Temp = (tnew[start_index+(i-1)*satzlaenge] + tnew[start_index+(i*satzlaenge)])/2 * Tfit_down_cool[4] + Tfit_down_cool[3]
 							p_SG = (Ifit[i-1,0]*-sin(phasediff))/(area*Tfit_down_cool[0]*2*pi*abs(Tfit_down_cool[1]))
 							p_BR = (abs(mean(Idata[start:ende,1]))/(area*Tfit_down_cool[4]))
 							perror = p_SG * rel_err(Tfit_down_cool,Terror_down_cool,Ifit[i-1],Ierror[i-1],area, area_error,phasediff,Xsigma=sigma)		
@@ -1870,18 +1878,19 @@ else:
 				#p(T)--------------------------------------------------------------
 				ax3=subplot(221)
 				ax3.set_autoscale_on(True)
-				ax3.set_xlim(p[0,1],p[turning_p_index,1])
+				#ax3.set_xlim(p[0,1],p[turning_p_index,1])
 				ax3.set_xlabel('Temperature (K)',size=label_size)
 				ax3.set_ylabel(u"$p$ (µC/Km²)",color=temp_color,size=label_size)
 
 				ax3.grid(b=None, which='major', axis='both', color='grey')
-				ax3.errorbar(p[:turning_p_index,1],(p[:turning_p_index,2]*1e6), yerr=p_error[:turning_p_index]*1e6, color=temp_color, marker=".",linestyle="", elinewidth=None, capsize=3, label='heating')
-				ax3.errorbar(p[turning_p_index:,1],(p[turning_p_index:,2]*1e6), yerr=p_error[turning_p_index:]*1e6, color=temp_color, marker="x",linestyle="", elinewidth=None, capsize=3, label='cooling')
-				
+				ax3.errorbar(p[:turning_p_index,1],(p[:turning_p_index,2]*1e6), yerr=p_error[:turning_p_index]*1e6, color=temp_color, marker=".",linestyle="", elinewidth=None, capsize=3, label='heat')
+				ax3.errorbar(p[turning_p_index:,1],(p[turning_p_index:,2]*1e6), yerr=p_error[turning_p_index:]*1e6, color=temp_color, marker="x",linestyle="", elinewidth=None, capsize=3, label='cool')
+				ax3.legend(loc=3,fontsize=fontsize_box)
+
 				if BR_flag == True:
-					ax3.plot(p[:turning_p_index,1],(p[:turning_p_index,3]*1e6), color=volt_color, marker=".",linestyle="", label='$p$ (BR) - heating')
-					ax3.plot(p[turning_p_index:,1],(p[turning_p_index:,3]*1e6), color=volt_color, marker="x",linestyle="", label='$p$ (BR) - cooling')
-					ax3.legend(loc=3)
+					ax3.plot(p[:turning_p_index,1],(p[:turning_p_index,3]*1e6), color=volt_color, marker=".",linestyle="", label='$p$ (BR) - heat')
+					ax3.plot(p[turning_p_index:,1],(p[turning_p_index:,3]*1e6), color=volt_color, marker="x",linestyle="", label='$p$ (BR) - cool')
+					ax3.legend(loc=3,fontsize=fontsize_box)
 
 				#p/TSC ration---------------------------------------------------------
 				ax5=subplot(222,sharex=ax3)
@@ -1889,9 +1898,10 @@ else:
 				ax5.set_xlim(ax3.get_xbound())
 				ax5.grid(b=None, which='major', axis='both', color='grey')
 				ax5.set_xlabel('Temperature (K)',size=label_size)
-				ax5.set_ylabel(r"I$_p$/I$_{TSC}$",color=volt_color,size=label_size)
-				ax5.semilogy(p[:turning_p_index,1], p[:turning_p_index,5], color=volt_color,marker=".",linestyle="", label="heating")
-				ax5.semilogy(p[turning_p_index:,1], p[turning_p_index:,5], color=volt_color,marker="x",linestyle="", label="cooling")
+				ax5.set_ylabel(r"I$_{\mathrm{p}}$/I$_{\mathrm{np}}$",color=volt_color,size=label_size)
+				ax5.semilogy(p[:turning_p_index,1], p[:turning_p_index,5], color=volt_color,marker=".",linestyle="", label="heat")
+				ax5.semilogy(p[turning_p_index:,1], p[turning_p_index:,5], color=volt_color,marker="x",linestyle="", label="cool")
+				ax5.legend(loc=3,fontsize=fontsize_box)
 
 				#Chisqr---------------------------------------------------------------
 				ax6=subplot(224,sharex=ax3)
@@ -1899,9 +1909,10 @@ else:
 				ax6.set_xlim(ax3.get_xbound())
 				ax6.grid(b=None, which='major', axis='both', color='grey')
 				ax6.set_xlabel('Temperature (K)',size=label_size)
-				ax6.set_ylabel(r"$X^2 / A_I^2$",color='c',size=label_size)
-				ax6.semilogy(p[:turning_p_index,1], p[:turning_p_index,7], color=np_color,marker=".",linestyle="", label="heating")
-				ax6.semilogy(p[turning_p_index:,1], p[turning_p_index:,7], color=np_color,marker="x",linestyle="", label="cooling")
+				ax6.set_ylabel(r"$X^2 / I_{\mathrm{Ampl.}}^2$",color='c',size=label_size)
+				ax6.semilogy(p[:turning_p_index,1], p[:turning_p_index,7], color=np_color,marker=".",linestyle="", label="heat")
+				ax6.semilogy(p[turning_p_index:,1], p[turning_p_index:,7], color=np_color,marker="x",linestyle="", label="cool")
+				ax6.legend(loc=3,fontsize=fontsize_box)
 
 				#Phasediff---------------------------------------------------------------
 				ax7=subplot(223,sharex=ax3)
@@ -1914,16 +1925,28 @@ else:
 				ax7.grid(b=None, which='major', axis='both', color='grey')
 				ax7.set_xlabel('Temperature (K)',size=label_size)
 				ax7.set_ylabel(ur"$\phi$ (°)",color=other,size=label_size)
-				ax7.plot(p[:turning_p_index,1],p[:turning_p_index,4],color=other,marker=".",linestyle="", label="heating")
-				ax7.plot(p[turning_p_index:,1],p[turning_p_index:,4],color=other,marker="x",linestyle="", label="cooling")
+				ax7.plot(p[:turning_p_index,1],p[:turning_p_index,4],color=other,marker=".",linestyle="", label="heat")
+				ax7.plot(p[turning_p_index:,1],p[turning_p_index:,4],color=other,marker="x",linestyle="", label="cool")
 				
+				#Currents----------------------------------------------------------------
 				ax8 = ax7.twinx()
 				ax8.set_xlim(ax3.get_xbound())
-				ax8.set_ylabel(r"$A_I$ (A)",color='r',size=label_size)
-				ax8.plot(p[:turning_p_index,1],Ifit[:turning_p_index,0],color=curr_color,marker=".",linestyle="", label="heating")
-				ax8.plot(p[turning_p_index:,1],Ifit[turning_p_index:,0],color=curr_color,marker="x",linestyle="", label="cooling")
+				ax8.set_ylabel(r"$I$ (A)",color='r',size=label_size)
+				ax8.errorbar(p[:turning_p_index,1],Ifit[:turning_p_index,0],yerr=abs(Ierror[:turning_p_index,0]),color=curr_color,marker=".",linestyle="", label="Ampl./heat")
+				ax8.errorbar(p[turning_p_index:,1],Ifit[turning_p_index:,0],yerr=abs(Ierror[turning_p_index:,0]),color=curr_color,marker="x",linestyle="", label="Ampl./cool")
 				
+				ax8.errorbar(p[:turning_p_index,1],Ifit[:turning_p_index,3],yerr=abs(Ierror[:turning_p_index,3]),color=p_color,marker="s",linestyle="", label="Offs./heat")
+				ax8.errorbar(p[turning_p_index:,1],Ifit[turning_p_index:,3],yerr=abs(Ierror[turning_p_index:,3]),color=p_color,marker="x",linestyle="", label="Offs./cool")
+
+				ax8.legend(loc=3,fontsize=fontsize_box)
+
 				bild2.tight_layout()
+
+				if print_signature == True:
+					bild2.subplots_adjust(bottom=0.125)
+					signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
+					figtext(0.15,0.02,signature)
+
 				show()
 				
 				#writing log files
