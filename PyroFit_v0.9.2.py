@@ -28,7 +28,7 @@ from scipy.interpolate import interp1d
 from lmfit import minimize, Parameters, report_errors, fit_report
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
-version = '0.9.1'
+version = '0.9.2'
 ion()				# interactive on
 close('all')		# close all current/open figures
 
