@@ -26,7 +26,8 @@ from scipy.interpolate import interp1d
 #from scipy.signal import argrelmax, argrelmin
 #from warnings import filterwarnings
 from lmfit import minimize, Parameters, report_errors, fit_report
-from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
+#from mpl_toolkits.axes_grid1.anchored_artists import AnchoredText
+from matplotlib.offsetbox import AnchoredText
 
 version = '0.9.5'
 ion()				# interactive on
@@ -2730,4 +2731,6 @@ else:
 	#for every other
 	else:
 		pass
+
+input("Press enter to exit")
 ioff()
