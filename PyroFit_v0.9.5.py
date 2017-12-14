@@ -87,6 +87,7 @@ PartWiseTFit = True											#If TRUE the temperature of a SineWave + LinRamp/T
 # Check Matplotlib Version--------------------------------------------------------------------------------------------------
 if int(__version__[0]) == 2:
 	style.use('classic')									#get old mpl style, if installed also my 'science' style can be used
+	
 color_style = 'TUBAF'										#TUBAF = CD colors, Standard = Matplotlib standard colors
 
 rcParams['legend.fancybox'] = True				 			#plot fancy box (round edges)
@@ -112,6 +113,15 @@ line = "----------------------------------"
 export_format = 'png'										#figure output format (png,jpeg,pdf,eps)
 
 # Functions-----------------------------------------------------------------------------------------------------------------
+def prompt(string):
+	python_version = int(sys.version[0])
+	if python_version==2:
+		answer = raw_input(string)
+	elif python_version==3:
+		answer = input(string)
+		
+	return answer
+
 # file functions -----------------------------------------------------------------------------------------------------------
 def extract_date(filename):
 	"""
@@ -134,7 +144,7 @@ def extract_datatype(filename):
 	output: data type [str]:
 		Current, Voltage, Charge, Temperature, Powersupply, Vaccum, HighVoltage, GBIP-Errors
 	"""
-	if filename.endswith("ELT-Curr-t-I.log"):
+	if filename.endswith("ELT-Curr-t-I.log") or filename.endswith("ELT-Curr-t-I-VB.log"):
 		return "Current"
 	elif filename.endswith("ELT-Volt-t-V.log"):
 		return "Voltage"
@@ -545,7 +555,7 @@ def get_area():
 		input: None
 		output: area [float]
 		"""
-	area_input = input("Area [m2]:")
+	area_input = prompt("Area [m2]:")
 	if area_input == "A":								#d13
 		return area_d13, 0.0082*area_d13
 	elif area_input == "Aold":
@@ -811,7 +821,7 @@ else:
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
 			#---------------------------------------------------------------------------------------------------------------
-			answer = input("fit? [y/n]")
+			answer = prompt("fit? [y/n]")
 			if answer == "y":
 				
 				area, area_error = get_area()
@@ -932,14 +942,14 @@ else:
 				draw()
 
 				#console output --------------------------------------------------------------------------------------------
-				print('Area:\t\t', area, 'm2')
-				print('I_pyro:\t\t', fabs(Ip), 'A')
-				print('I_TSC:\t\t', fabs(Inp), 'A')
-				print('phase T-I:\t',(degrees(phasediff)))
-				print('p:\t\t', pyro_koeff*1e6,'yC/Km2')
-				print('\t\t(+-', perror*1e6,'yC/Km2)')
+				print('Area:\t\t%.3e m2'%area)
+				print('I_pyro:\t\t%.3e A'%fabs(Ip))
+				print('I_TSC:\t\t%.3e A'%fabs(Inp))
+				print('phase T-I:\t%.3e'%(degrees(phasediff)))
+				print('p:\t\t%.3f yC/Km2'%(pyro_koeff*1e6))
+				print('\t\t(+-%.3f yC/Km2'%(perror*1e6))
 				print('B_T:\t\t%f nA/K' % (fabs(Inp/Tfit_down[1])*1e9))
-				answer = input("Show fits? [y/n]")
+				answer = prompt("Show fits? [y/n]")
 				if answer == "y":
 					consoleprint_fit(Tparams_down, "Temperature (Down)")
 					if temp_filter_flag == False:
@@ -984,7 +994,7 @@ else:
 
 			show()
 			
-			answer = input("fit [y/n]?")
+			answer = prompt("fit [y/n]?")
 			if answer == "y":
 
 				#area for pyroel. coefficent
@@ -994,7 +1004,7 @@ else:
 				
 				usecoolrate_flag = False
 				if measurement_info['cool_rate'] != 0:
-					choise_rate = input('use "cool" or "heat" rate?:')
+					choise_rate = prompt('use "cool" or "heat" rate?:')
 					if choise_rate == 'cool':
 						usecoolrate_flag = True
 
@@ -1362,14 +1372,14 @@ else:
 
 				#Calculating p ---------------------------------------------------------------------------------------
 				print("spontaneous Polarization ...")
-				PS_plot = input("Calculate? (y/n):")
+				PS_plot = prompt("Calculate? (y/n):")
 				if PS_plot == "y":
 					PS_flag = True
 					
 					#generate new ax
 					axP = ax3.twinx()
 					
-					number_of_maxima = input("How many max?: ")
+					number_of_maxima = prompt("How many max?: ")
 					number_of_maxima = int(number_of_maxima)
 					print("select TC(s) from the p(T) plot")
 					TC = ginput(number_of_maxima)
@@ -1477,7 +1487,7 @@ else:
 
 			show()
 
-			answer = input("fit (y/n)?")
+			answer = prompt("fit (y/n)?")
 			if answer == "y":
 
 				#area for pyroel. coefficent
@@ -2279,7 +2289,7 @@ else:
 		box_string = u"Temperature: %.2f K\nMax. Volt.: %.2f V\nCurr. Compl.: %.3e A\nSwitch off time: %.2f s" % (measurement_info['T_Limit_H'],max(HVdata[:,1]),HV_set[1],sw_off_time)
 		
 		#Fit exponential decay
-		answer = input("fit exponential decay? (y/n)")
+		answer = prompt("fit exponential decay? (y/n)")
 		if answer == "y":
 			#console output and graphical input
 			print("Select start of fit from graph.")
@@ -2732,5 +2742,5 @@ else:
 	else:
 		pass
 
-input("Press enter to exit")
+prompt("Press enter to exit")
 ioff()
