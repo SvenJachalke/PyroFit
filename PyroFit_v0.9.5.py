@@ -1054,14 +1054,13 @@ else:
 					
 						# fit performed at t=0
 						Tresult_sin = minimize(sinfunc, Tparams_down, args=(tnew[start:ende]-tnew[start], Tnew[start:ende,0]), method="leastsq")
-					
 						#console status
 						sys.stdout.write("\rProgress: %d/%d; %.0f %%" % (i,T_perioden-1,100*float(i)/float(T_perioden-1)))
 						sys.stdout.flush()
 						
 						#fit correction (amp/phase)
 						Tparams_down = amp_phase_correction(Tresult_sin.params)	
-						
+
 						#plot
 						ax1.plot(tnew[start:ende], sinfunc(Tparams_down, tnew[start:ende]-tnew[start]), color=temp_color, linestyle='-')
 						
@@ -1191,7 +1190,7 @@ else:
 					sys.stdout.flush()
 					
 					#fit correction (amp/phase)
-					Iparams = amp_phase_correction(Iparams)	
+					Iparams = amp_phase_correction(Iparams)
 					
 					#plot of sin and lin fit
 					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]-tnew[start]), 'r-')
@@ -2741,6 +2740,6 @@ else:
 	#for every other
 	else:
 		pass
-
-prompt("Press enter to exit")
+print(line)
+prompt("Press enter to exit ...")
 ioff()
