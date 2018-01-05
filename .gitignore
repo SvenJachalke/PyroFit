@@ -2,6 +2,7 @@
 *.png
 *.txt
 *.DS_Store
-!2014-06-10*
 /ExampleData-PyroFit
 /ErrorComparison-FullVsPartWise-LiNbO3-C-LNF1
+/UHVKammerParser
+/old
