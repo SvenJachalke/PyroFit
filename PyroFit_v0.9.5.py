@@ -573,7 +573,7 @@ def get_area():
 	elif area_input == "CUSTOM":						#custom defined values
 		return custom, custom_error
 	else:
-		return float(input), 0.0082*float(input)	#direct area input
+		return float(area_input), 0.0082*float(area_input)	#direct area input
 def amp_phase_correction(fit_dict):
 	"""
 	Correction if neg. amplitudes and phases >< 2 pi are fitted
