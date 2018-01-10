@@ -797,7 +797,7 @@ else:
 				
 				axp.plot(Tnew,pyro_koeff*1e6,color=temp_color,marker=".",linestyle="", label='p (BR)')
 				axp.set_xlabel('Temperature (K)',size=label_size)
-				axp.set_ylabel(u"p (µC/Km²)",color=temp_color,size=label_size)
+				axp.set_ylabel(u"p (yC/Km²)",color=temp_color,size=label_size)
 				axp.grid(b=None, which='major', axis='both', color='grey')
 				axp.set_xlim(273,max(Tnew[:,0]))
 
@@ -968,7 +968,7 @@ else:
 				log = open(date+"_"+samplename+"_"+T_profile+"_I-Fit.txt", 'w+')
 				fileprint_fit(log, Iparams, "I-Fit")
 				log.close()
-				header_string = "#area [m2]\t\t\tI-p [A]\t\t\tI-TSC [A]\t\t\tphasediff [deg]\t\t\tpyroCoeff [yC/Km2]\t\t\tp_error [µC/Km2]\t\t\tB_T [A/K]"
+				header_string = "#area [m2]\t\t\tI-p [A]\t\t\tI-TSC [A]\t\t\tphasediff [deg]\t\t\tpyroCoeff [yC/Km2]\t\t\tp_error [yC/Km2]\t\t\tB_T [A/K]"
 				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", [area,Ip,Inp,degrees(phasediff),pyro_koeff,perror, fabs(Inp/Tfit_down[1])], delimiter="\t", header=header_string)
 				if calculate_data_from_fit_flag == True:
 					header_string = "time [s]\t\t\tI_TSC [A]\t\t\tI_pyro [A]"
@@ -1054,13 +1054,14 @@ else:
 					
 						# fit performed at t=0
 						Tresult_sin = minimize(sinfunc, Tparams_down, args=(tnew[start:ende]-tnew[start], Tnew[start:ende,0]), method="leastsq")
+					
 						#console status
 						sys.stdout.write("\rProgress: %d/%d; %.0f %%" % (i,T_perioden-1,100*float(i)/float(T_perioden-1)))
 						sys.stdout.flush()
 						
 						#fit correction (amp/phase)
 						Tparams_down = amp_phase_correction(Tresult_sin.params)	
-
+						
 						#plot
 						ax1.plot(tnew[start:ende], sinfunc(Tparams_down, tnew[start:ende]-tnew[start]), color=temp_color, linestyle='-')
 						
@@ -1190,7 +1191,7 @@ else:
 					sys.stdout.flush()
 					
 					#fit correction (amp/phase)
-					Iparams = amp_phase_correction(Iparams)
+					Iparams = amp_phase_correction(Iparams)	
 					
 					#plot of sin and lin fit
 					ax2.plot(tnew[start:ende], sinfunc(Iparams, tnew[start:ende]-tnew[start]), 'r-')
@@ -1313,7 +1314,7 @@ else:
 				ax3.set_autoscale_on(True)
 				ax3.set_xlim(p[0,1],p[-1,1])
 				ax3.set_xlabel('Temperature (K)',size=label_size)
-				ax3.set_ylabel(u"$p$ (µC/Km²)",color=temp_color,size=label_size)
+				ax3.set_ylabel(u"$p$ (yC/Km²)",color=temp_color,size=label_size)
 
 				ax3.grid(b=None, which='major', axis='both', color='grey')
 				ax3.errorbar(p[:,1],(p[:,2]*1e6), yerr=p_error[:]*1e6, color=temp_color,marker=".",linestyle="", elinewidth=None, capsize=3, label='$p$ (SG)')
@@ -1892,7 +1893,7 @@ else:
 				ax3.set_autoscale_on(True)
 				#ax3.set_xlim(p[0,1],p[turning_p_index,1])
 				ax3.set_xlabel('Temperature (K)',size=label_size)
-				ax3.set_ylabel(u"$p$ (µC/Km²)",color=temp_color,size=label_size)
+				ax3.set_ylabel(u"$p$ (yC/Km²)",color=temp_color,size=label_size)
 
 				ax3.grid(b=None, which='major', axis='both', color='grey')
 				ax3.errorbar(p[:turning_p_index,1],(p[:turning_p_index,2]*1e6), yerr=p_error[:turning_p_index]*1e6, color=temp_color, marker=".",linestyle="", elinewidth=None, capsize=3, label='heat')
@@ -2169,7 +2170,7 @@ else:
 				p = IParams['A'].value * (TParams['decay'].value)/(A*TParams['A'].value) #hier stimmt noch nicht ... eigentlich nicht /2
 				pyro_coeffs.append(p)	
 				print(line)
-				print("p:", p*1e6, "µC/Km2")
+				print("p:", p*1e6, "yC/Km2")
 				
 				#calcing F0
 				F0 = (IParams['A'].value * C_LT) / (abs(p) * A**2)
@@ -2183,7 +2184,7 @@ else:
 			print(line)
 			print("Results")
 			print(line)
-			print("mean p: ", mean(absolute(pyro_coeffs))*1e6, "µC/Km2")
+			print("mean p: ", mean(absolute(pyro_coeffs))*1e6, "yC/Km2")
 			print("mean F0:", mean(absolute(F0s)), "W/m2")
 
 		
@@ -2622,7 +2623,7 @@ else:
 				ax3.set_xlim(p[0,0],p[-1,0])
 				#ax3.set_ylim(min(p[:,2])*1e6-50, max(p[:,2])*1e6+50)
 				ax3.set_xlabel('Time (s)',size=label_size)
-				ax3.set_ylabel(u"$p$ (µC/Km²)",color=temp_color,size=label_size)
+				ax3.set_ylabel(u"$p$ (yC/Km²)",color=temp_color,size=label_size)
 
 				ax3.grid(b=None, which='major', axis='both', color='grey')
 				ax3.errorbar(p[:,0],(p[:,2]*1e6), yerr=p_error[:]*1e6, color=temp_color,marker=".",linestyle="", elinewidth=None, capsize=3, label='p (SG)')
@@ -2740,6 +2741,6 @@ else:
 	#for every other
 	else:
 		pass
-print(line)
-prompt("Press enter to exit ...")
+
+prompt("Press enter to exit")
 ioff()
