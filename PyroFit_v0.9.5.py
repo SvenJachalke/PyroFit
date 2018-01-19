@@ -1350,7 +1350,7 @@ else:
 				ax7.axhline(270, color='k', linestyle='--')
 				ax7.grid(b=None, which='major', axis='both', color='grey')
 				ax7.set_xlabel('Temperature (K)',size=label_size)
-				ax7.set_ylabel(r'$\phi$ (°)',color=other,size=label_size)
+				ax7.set_ylabel(r'$\phi$ (deg)',color=other,size=label_size)
 				ax7.errorbar(p[:,1],p[:,4],yerr=(abs(Terror_down[:,2])+abs(Ierror[:,2])),color=other,marker=".",linestyle="", label="Phasediff.")
 				
 				#CurrAmp---------------------------------------------------------------
@@ -1937,7 +1937,7 @@ else:
 				ax7.axhline(270, color='k', linestyle='--')
 				ax7.grid(b=None, which='major', axis='both', color='grey')
 				ax7.set_xlabel('Temperature (K)',size=label_size)
-				ax7.set_ylabel(r"$\phi$ (°)",color=other,size=label_size)
+				ax7.set_ylabel(r"$\phi$ (deg)",color=other,size=label_size)
 				ax7.plot(p[:turning_p_index,1],p[:turning_p_index,4],color=other,marker=".",linestyle="", label="heat")
 				ax7.plot(p[turning_p_index:,1],p[turning_p_index:,4],color=other,marker="x",linestyle="", label="cool")
 				
@@ -2656,7 +2656,7 @@ else:
 				ax7.axhline(270, color='k', linestyle='--')
 				ax7.grid(b=None, which='major', axis='both', color='grey')
 				ax7.set_xlabel('Time (s)',size=label_size)
-				ax7.set_ylabel(r"$\phi$ (°)",color=other,size=label_size)
+				ax7.set_ylabel(r"$\phi$ (deg)",color=other,size=label_size)
 				ax7.plot(p[:,0],p[:,4],color=other,marker=".",linestyle="", label="Phasediff.")
 				
 				#CurrAmp---------------------------------------------------------------
