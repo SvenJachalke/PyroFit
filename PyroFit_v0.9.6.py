@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Universal Script for PyroData Evaluation
@@ -11,27 +12,32 @@
 #			09596 Freiberg
 #---------------------------------------------------------------------------------------------------------------------------
 # Necessary Python Packages:
+# - Anaconda Distribution (Python 3.6 and higher)
 # - scipy.interpolate
 # - pylab (matplotlib, numpy, scipy), etc.
 # - lmfit (https://github.com/lmfit/lmfit-py)
 # - tubafcdpy(https://github.com/SvenJachalke/tubafcdpy)
 #---------------------------------------------------------------------------------------------------------------------------
  
+# chose plotting backend
+import matplotlib 
+matplotlib.use('TkAgg')
+
 # Import modules------------------------------------------------------------------------------------------------------------
-from pylab import *
-from tubafcdpy import *
+import matplotlib.pyplot as plt
 from matplotlib import __version__
+from tubafcdpy import *
 import glob, sys, os, datetime
+from numpy import *
 from scipy.interpolate import interp1d
-#from scipy.signal import argrelmax, argrelmin
-#from warnings import filterwarnings
 from lmfit import minimize, Parameters, report_errors, fit_report
-#from mpl_toolkits.axes_grid1.anchored_artists import AnchoredText
 from matplotlib.offsetbox import AnchoredText
 
+from time import sleep
+
 version = '0.9.5'
-ion()				# interactive on
-close('all')		# close all current/open figures
+plt.ion()				# interactive on
+plt.close('all')		# close all current/open figures
 
 # Operator Information------------------------------------------------------------------------------------------------------
 now = datetime.datetime.now()
@@ -70,7 +76,6 @@ single_crystal = False										#for single crystals phase=90deg ... thermal con
 
 interpolation_step = 0.5									#time grid for interpolation (in sec)
 Ifit_counter_limit = 5										#repeat number when I-fit insufficient
-warnings.filterwarnings("ignore")							#ignores warnings
 
 # Alternatives for calculations --------------------------------------------------------------------------------------------
 Formation = False											#If TRUE and OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
@@ -86,11 +91,11 @@ PartWiseTFit = True											#If TRUE the temperature of a SineWave + LinRamp/T
 # Plot Settings-------------------------------------------------------------------------------------------------------------
 # Check Matplotlib Version--------------------------------------------------------------------------------------------------
 if int(__version__[0]) == 2:
-	style.use('classic')									#get old mpl style, if installed also my 'science' style can be used
+	matplotlib.style.use('classic')							#get old mpl style, if installed also my 'science' style file can be used
 	
 color_style = 'TUBAF'										#TUBAF = CD colors, Standard = Matplotlib standard colors
 
-rcParams['legend.fancybox'] = True				 			#plot fancy box (round edges)
+matplotlib.rcParams['legend.fancybox'] = True				#plot fancy box (round edges)
 print_signature = True										#print the operators signature at the bottom of the plot
 enable_title = True											#enable/disable title in plot
 
@@ -340,11 +345,11 @@ def set_skip_points():
 		return 6
 def plot_graph(tnew, Tnew, Inew, T_profile):
 	head = date+"_"+samplename+"_"+T_profile
-	bild = figure(head, figsize=fig_size)
-	ax1 = subplot(111)
+	bild = plt.figure(head, figsize=fig_size)
+	ax1 = bild.add_subplot(111)
 	ax2 = ax1.twinx()
 	if enable_title == True:
-		title(samplename, size=title_size)
+		ax1.set_title(samplename, size=title_size)
 
 	#Plot Temperature
 	ax1.set_xlabel("Time (s)",size=label_size)
@@ -376,15 +381,12 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 	#ax2.add_artist(legT)
 
 	bild.tight_layout()
-	#pause(0.1)
 	
 	if print_signature == True:
 		bild.subplots_adjust(bottom=0.125)
 		signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
-		figtext(0.15,0.02,signature)
-	
-	show()
-
+		plt.figtext(0.15,0.02,signature)
+	plt.show()
 	return bild, ax1, ax2
 def plot_textbox(boxtext):
 	"""
@@ -401,16 +403,16 @@ def plot_textbox(boxtext):
 
 	return box
 def current_custom_legend(ax,loc=4):
-	np_line = Line2D(range(10), range(10), linestyle='-', marker='', color = np_color)
-	p_line = Line2D(range(10), range(10), linestyle='-', marker='', color = p_color)
-	Imeas_line = Line2D(range(10), range(10), linestyle='', marker='o', color = curr_color)
-	Ifit_line = Line2D(range(10), range(10), linestyle='-', marker='', color = curr_color)
+	np_line = plt.Line2D(range(10), range(10), linestyle='-', marker='', color = np_color)
+	p_line = plt.Line2D(range(10), range(10), linestyle='-', marker='', color = p_color)
+	Imeas_line = plt.Line2D(range(10), range(10), linestyle='', marker='o', color = curr_color)
+	Ifit_line = plt.Line2D(range(10), range(10), linestyle='-', marker='', color = curr_color)
 	
 	legend = ax.legend((Imeas_line,Ifit_line,np_line,p_line), ('data','fit','non-pyro','pyro'),loc=loc,title="currents")
 	return legend 
 def temperature_custom_legend(ax,loc=1):
-	Tmeas_line = Line2D(range(10),range(10), linestyle='', marker='o', color = temp_color)
-	Tfit_line = Line2D(range(10),range(10), linestyle='-', marker='', color = temp_color)
+	Tmeas_line = plt.Line2D(range(10),range(10), linestyle='', marker='o', color = temp_color)
+	Tfit_line = plt.Line2D(range(10),range(10), linestyle='-', marker='', color = temp_color)
 
 	legend = ax.legend((Tmeas_line,Tfit_line),('data','fit'),loc=loc,title='temperatures')
 	return legend
@@ -744,7 +746,7 @@ else:
 			box_text = "Temperature: "+str(measurement_info['T_Limit_H']) + "K"
 			box = plot_textbox(box_text)
 			ax2.add_artist(box)
-			show()
+			plt.show()
 
 			#saving figure
 			saving_figure(bild)
@@ -767,7 +769,7 @@ else:
 			box_text = "Temperature: "+str(measurement_info['offs']) +' - ' + str(round(max(Tdata[:,1]),2)) + "K \nSlope: " + str(measurement_info['heat_rate']*3600) + " K/h"
 			box = plot_textbox(box_text)
 			ax2.add_artist(box)
-			show()
+			plt.show()
 			
 			# Perform Byer-Roundy Fit and calc p
 			#---------------------------------------------------------------------------------------------------------------
@@ -780,7 +782,7 @@ else:
 			
 				#Byer Roundy evaluation
 				head = date+"_"+samplename+"_"+T_profile+'p(T)'
-				bild2 = figure(head, figsize=fig_size)
+				bild2 = plt.figure(head, figsize=fig_size)
 				axp = bild2.add_subplot(111)
 				
 				#initialize list and dicts for fit
@@ -836,7 +838,7 @@ else:
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
 				#Plot
 				ax1.plot(tnew[start_index:], sinfunc(Tparams_down, tnew[start_index:]), color=temp_color, linestyle='-', label="T-Fit (down)")
-				draw()
+				plt.draw()
 				#absolute T_high Error
 				total_Terror_down = abs(Tparams_down['amp'].stderr/Tparams_down['amp'].value)+abs(Tparams_down['phase'].stderr/Tparams_down['phase'].value)+abs(Tparams_down['freq'].stderr/Tparams_down['freq'].value)+abs(Tparams_down['offs'].stderr/Tparams_down['offs'].value)+abs(Tparams_down['slope'].stderr/Tparams_down['slope'].value)
 
@@ -850,7 +852,7 @@ else:
 					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 					#plot of second fit
 					ax1.plot(tnew[start_index:-5], sinfunc(Tparams_high, tnew[start_index:-5]), color=volt_color,linestyle='-', label='T-Fit (top)')
-					draw()
+					plt.draw()
 					#absolute T_high Error
 					total_Terror_high = abs(Tparams_high['amp'].stderr/Tparams_high['amp'].value)+abs(Tparams_high['phase'].stderr/Tparams_high['phase'].value)+abs(Tparams_high['freq'].stderr/Tparams_high['freq'].value)+abs(Tparams_high['offs'].stderr/Tparams_high['offs'].value)+abs(Tparams_high['slope'].stderr/Tparams_high['slope'].value)
 
@@ -871,7 +873,7 @@ else:
 				Ifit, Ierror = extract_fit_relerr_params(Iparams)
 				#plot current fit
 				ax2.plot(tnew[start_index:], sinfunc(Iparams, tnew[start_index:]), color=curr_color,linestyle='-', label='I-Fit')
-				draw()
+				plt.draw()
 
 				#calculate pyroelectric coefficient------------------------------------------------------------------------
 				if single_crystal == False:
@@ -939,7 +941,7 @@ else:
 				ax2.legend(title="currents",loc='lower right')
 				# ax2.add_artist(leg1)	#bring legend to foreground
 				ax2.add_artist(box)
-				draw()
+				plt.draw()
 
 				#console output --------------------------------------------------------------------------------------------
 				print('Area:\t\t%.3e m2'%area)
@@ -991,8 +993,6 @@ else:
 			# pre-fit plot
 			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
-
-			show()
 			
 			answer = prompt("fit [y/n]?")
 			if answer == "y":
@@ -1095,7 +1095,7 @@ else:
 					Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
 					#Fit-Plot
 					ax1.plot(tnew[start_index:limit], sinfunc(Tparams_down, tnew[start_index:limit]), color=temp_color,linestyle='-', label='T-Fit')
-					draw()
+					plt.draw()
 					#absolute T_high Error
 					total_Terror_down = abs(Tresult_down.params['amp'].stderr/Tresult_down.params['amp'].value)+abs(Tresult_down.params['phase'].stderr/Tresult_down.params['phase'].value)+abs(Tresult_down.params['freq'].stderr/Tresult_down.params['freq'].value)+abs(Tresult_down.params['offs'].stderr/Tresult_down.params['offs'].value)+abs(Tresult_down.params['slope'].stderr/Tresult_down.params['slope'].value)
 					#file output
@@ -1110,7 +1110,7 @@ else:
 						Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 						#plot of second fit
 						ax1.plot(tnew[start_index:-5], sinfunc(Tparams_high, tnew[start_index:-5]), color=volt_color,linestyle='-', label='T-Fit (top)')
-						draw()
+						plt.draw()
 						#absolute T_high Error
 						total_Terror_high = abs(Tparams_high['amp'].stderr/Tparams_high['amp'].value)+abs(Tparams_high['phase'].stderr/Tparams_high['phase'].value)+abs(Tparams_high['freq'].stderr/Tparams_high['freq'].value)+abs(Tparams_high['offs'].stderr/Tparams_high['offs'].value)+abs(Tparams_high['slope'].stderr/Tparams_high['slope'].value)
 						#file output
@@ -1118,7 +1118,7 @@ else:
 					
 					log.close()
 				temperature_custom_legend(ax1)
-				draw()
+				plt.draw()
 
 				print('\nTemperature ... done')
 				print(line)
@@ -1297,7 +1297,7 @@ else:
 						p_error = append(p_error,perror)
 				
 				current_custom_legend(ax2)
-				draw()
+				plt.draw()
 				
 				header_string = "Amp [I]\t\t\tFreq [Hz]\t\t\tPhase [rad]\t\t\tOffset [A]\t\t\tSlope [A/s]\t\t\tAmp_Err [A]\t\t\tFreq_Err [Hz]\t\t\tPhase_Err [rad]\t\t\tOffs_Err [A]\t\t\tSlope_Err [A/s]"
 				savetxt(date+"_"+samplename+"_"+T_profile+"_I-Fit.txt",hstack([Ifit,Ierror]), delimiter="\t", header=header_string)
@@ -1306,10 +1306,10 @@ else:
 				print(line)
 
 				#Plotting p(T)-----------------------------------------------------------------------------------------------------------
-				bild2=figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
+				bild2=plt.figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
 
 				#p(T)--------------------------------------------------------------
-				ax3=subplot(221)
+				ax3=plt.subplot(221)
 				ax3.set_autoscale_on(True)
 				ax3.set_xlim(p[0,1],p[-1,1])
 				ax3.set_xlabel('Temperature (K)',size=label_size)
@@ -1322,7 +1322,7 @@ else:
 					ax3.legend(loc=3)
 
 				#p/TSC ration---------------------------------------------------------
-				ax5=subplot(222,sharex=ax3)
+				ax5=plt.subplot(222,sharex=ax3)
 				ax5.set_autoscale_on(True)
 				ax5.set_xlim(ax3.get_xbound())
 				ax5.grid(b=None, which='major', axis='both', color='grey')
@@ -1331,7 +1331,7 @@ else:
 				ax5.semilogy(p[:,1], p[:,5], color=volt_color,marker=".",linestyle="", label=r"I$_{\mathrm{p}}$/I$_{\mathrm{{np}}$")
 
 				#Chisqr---------------------------------------------------------------
-				ax6=subplot(224,sharex=ax3)
+				ax6=plt.subplot(224,sharex=ax3)
 				ax6.set_autoscale_on(True)
 				ax6.set_xlim(ax3.get_xbound())
 				ax6.grid(b=None, which='major', axis='both', color='grey')
@@ -1340,7 +1340,7 @@ else:
 				ax6.semilogy(p[:,1], p[:,7], color=np_color,marker=".",linestyle="", label=r"$X^2$")
 
 				#Phasediff---------------------------------------------------------------
-				ax7=subplot(223,sharex=ax3)
+				ax7=plt.subplot(223,sharex=ax3)
 				#ax7.set_autoscale_on(True)
 				ax7.set_xlim(ax3.get_xbound())
 				ax7.set_ylim(0,360)
@@ -1365,9 +1365,9 @@ else:
 				if print_signature == True:
 					bild2.subplots_adjust(bottom=0.125)
 					signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
-					figtext(0.15,0.02,signature)
+					plt.figtext(0.15,0.02,signature)
 				
-				show()
+				plt.show()
 
 				#Calculating p ---------------------------------------------------------------------------------------
 				print("spontaneous Polarization ...")
@@ -1422,7 +1422,7 @@ else:
 						axP.set_xlim(ax3.get_xbound())
 						axP.set_ylabel(u'Polarization (mC/m²)',color=p_color,size=label_size)
 					
-					draw()
+					plt.draw()
 				
 				#Saving results and figs------------------------------------------------------------------------------
 				saving_figure(bild1)
@@ -1463,7 +1463,7 @@ else:
 			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
-			show()
+			plt.show()
 
 			#save figure
 			print(line)
@@ -1484,7 +1484,7 @@ else:
 			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
-			show()
+			plt.show()
 
 			answer = prompt("fit (y/n)?")
 			if answer == "y":
@@ -1593,7 +1593,7 @@ else:
 					Tfit_down_heat, Terror_down_heat = extract_fit_relerr_params(Tparams_down_heat)
 					#Fit-Plot
 					ax1.plot(tnew[start_index:turning_point_index], sinfunc(Tparams_down_heat, tnew[start_index:turning_point_index]), color=temp_color, linestyle='-', label="fit")
-					draw()
+					plt.draw()
 					#absolute T_high Error
 					total_Terror_down_heat = abs(Tparams_down_heat['amp'].stderr/Tparams_down_heat['amp'].value)+abs(Tparams_down_heat['phase'].stderr/Tparams_down_heat['phase'].value)+abs(Tparams_down_heat['freq'].stderr/Tparams_down_heat['freq'].value)+abs(Tparams_down_heat['offs'].stderr/Tparams_down_heat['offs'].value)+abs(Tparams_down_heat['slope'].stderr/Tparams_down_heat['slope'].value)
 					#file output
@@ -1607,7 +1607,7 @@ else:
 						Tfit_high_heat, Terror_high_heat = extract_fit_relerr_params(Tparams_high_heat)
 						#plot of second fit
 						ax1.plot(tnew[start_index:turning_point_index], sinfunc(Tparams_high_heat, tnew[start_index:turning_point_index]), color=volt_color, linestyle='-', label='fit (Top)')
-						draw()
+						plt.draw()
 						#absolute T_high Error
 						total_Terror_high_cool = abs(Tparams_high_heat['amp'].stderr/Tparams_high_heat['amp'].value)+abs(Tparams_high_heat['phase'].stderr/Tparams_high_heat['phase'].value)+abs(Tparams_high_heat['freq'].stderr/Tparams_high_heat['freq'].value)+abs(Tparams_high_heat['offs'].stderr/Tparams_high_heat['offs'].value)+abs(Tparams_high_heat['slope'].stderr/Tparams_high_heat['slope'].value)
 						#file output
@@ -1622,7 +1622,7 @@ else:
 					Tfit_down_cool, Terror_down_cool = extract_fit_relerr_params(Tparams_down_cool)
 					#Fit-Plot
 					ax1.plot(tnew[turning_point_index:end_point_index], sinfunc(Tparams_down_cool, tnew[turning_point_index:end_point_index]),color=temp_color, linestyle='-')
-					draw()
+					plt.draw()
 					#absolute T_high Error
 					total_Terror_down_heat = abs(Tparams_down_cool['amp'].stderr/Tparams_down_cool['amp'].value)+abs(Tparams_down_cool['phase'].stderr/Tparams_down_cool['phase'].value)+abs(Tparams_down_cool['freq'].stderr/Tparams_down_cool['freq'].value)+abs(Tparams_down_cool['offs'].stderr/Tparams_down_cool['offs'].value)+abs(Tparams_down_cool['slope'].stderr/Tparams_down_cool['slope'].value)
 					#file output
@@ -1635,7 +1635,7 @@ else:
 						Tfit_high_cool, Terror_high_cool = extract_fit_relerr_params(Tparams_high_cool)
 						#plot of second fit
 						ax1.plot(tnew[turning_point_index:end_point_index], sinfunc(Tparams_high_cool, tnew[turning_point_index:end_point_index]), color=volt_color, linestyle='-')
-						draw()
+						plt.draw()
 						#absolute T_high Error
 						total_Terror_high_cool = abs(Tparams_high_cool['amp'].stderr/Tparams_high_cool['amp'].value)+abs(Tparams_high_cool['phase'].stderr/Tparams_high_cool['phase'].value)+abs(Tparams_high_cool['freq'].stderr/Tparams_high_cool['freq'].value)+abs(Tparams_high_cool['offs'].stderr/Tparams_high_cool['offs'].value)+abs(Tparams_high_cool['slope'].stderr/Tparams_high_cool['slope'].value)
 						#file output
@@ -1644,7 +1644,7 @@ else:
 					log.close()
 
 				temperature_custom_legend(ax1)
-				draw()
+				plt.draw()
 				print("\nTemperature ... done!")
 
 				#Current Fit -------------------------------------------------------------------------------------
@@ -1877,7 +1877,7 @@ else:
 						p_error = append(p_error,perror)
 					
 				current_custom_legend(ax2)
-				draw()
+				plt.draw()
 				
 				header_string = "Amp [I]\t\t\tFreq [Hz]\t\t\tPhase [rad]\t\t\tOffset [A]\t\t\tSlope [A/s]\t\t\tAmp_Err [A]\t\t\tFreq_Err [Hz]\t\t\tPhase_Err [rad]\t\t\tOffs_Err [A]\t\t\tSlope_Err [A/s]"
 				savetxt(date+"_"+samplename+"_"+T_profile+"_I-Fit.txt",hstack([Ifit,Ierror]), delimiter="\t", header=header_string)
@@ -1885,10 +1885,10 @@ else:
 				print(line)
 				
 				#Plotting p(T)-----------------------------------------------------------------------------------------------------------
-				bild2=figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
+				bild2=plt.figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
 
 				#p(T)--------------------------------------------------------------
-				ax3=subplot(221)
+				ax3=plt.subplot(221)
 				ax3.set_autoscale_on(True)
 				#ax3.set_xlim(p[0,1],p[turning_p_index,1])
 				ax3.set_xlabel('Temperature (K)',size=label_size)
@@ -1905,7 +1905,7 @@ else:
 					ax3.legend(loc=3,fontsize=fontsize_box)
 
 				#p/TSC ration---------------------------------------------------------
-				ax5=subplot(222,sharex=ax3)
+				ax5=plt.subplot(222,sharex=ax3)
 				ax5.set_autoscale_on(True)
 				ax5.set_xlim(ax3.get_xbound())
 				ax5.grid(b=None, which='major', axis='both', color='grey')
@@ -1916,7 +1916,7 @@ else:
 				ax5.legend(loc=3,fontsize=fontsize_box)
 
 				#Chisqr---------------------------------------------------------------
-				ax6=subplot(224,sharex=ax3)
+				ax6=plt.subplot(224,sharex=ax3)
 				ax6.set_autoscale_on(True)
 				ax6.set_xlim(ax3.get_xbound())
 				ax6.grid(b=None, which='major', axis='both', color='grey')
@@ -1927,7 +1927,7 @@ else:
 				ax6.legend(loc=3,fontsize=fontsize_box)
 
 				#Phasediff---------------------------------------------------------------
-				ax7=subplot(223,sharex=ax3)
+				ax7=plt.subplot(223,sharex=ax3)
 				ax7.set_autoscale_on(True)
 				ax7.set_xlim(ax3.get_xbound())
 				ax7.set_ylim(0,360)
@@ -1957,9 +1957,9 @@ else:
 				if print_signature == True:
 					bild2.subplots_adjust(bottom=0.125)
 					signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
-					figtext(0.15,0.02,signature)
+					plt.figtext(0.15,0.02,signature)
 
-				show()
+				plt.show()
 				
 				#writing log files
 				print("...writing log files")				
@@ -1993,7 +1993,7 @@ else:
 			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
-			show()
+			plt.show()
 			
 			
 			
@@ -2021,7 +2021,7 @@ else:
 
 			ax2.plot(Idata[t_idx_min:t_idx_max,0], expChy(Params, Idata[t_idx_min:t_idx_max,0]), 'm-', label=r'I$_{Chynoweth}$')
 
-			draw()
+			plt.draw()
 			
 			B = Params['B'].value						#current faktor in exp. func (in A)
 			I_offs = Params['offs'].value				#offset current which has to be subtractet from B
@@ -2060,7 +2060,7 @@ else:
 			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
-			show()
+			plt.show()
 			
 			#-----------------------------
 			#UNDER CONSTRUCTION
@@ -2161,7 +2161,7 @@ else:
 				print(IParams['decay'].value)
 				print(IParams['offs'].value)
 				
-				draw()
+				plt.draw()
 				
 				
 			
@@ -2256,8 +2256,8 @@ else:
 		print(line)
 
 		head = date+"_"+samplename + "_AutoPol"
-		bild = figure(head,figsize=fig_size)
-		ax1 = subplot(111)
+		bild = plt.figure(head,figsize=fig_size)
+		ax1 = plt.subplot(111)
 		ax2 = ax1.twinx()
 		title(samplename+"_AutoPol",size=label_size)
 
@@ -2279,7 +2279,7 @@ else:
 		ax2.set_xlim(Idata[0,0],Idata[-1,0])
 
 		bild.tight_layout()
-		show()
+		plt.show()
 		
 		#get switch off time
 		sw_off_index = abs(HVdata[:,1]-PolVolt).argmin()
@@ -2333,7 +2333,7 @@ else:
 		box = plot_textbox(box_string)
 		ax2.add_artist(box)
 		
-		draw()
+		plt.draw()
 			
 		#save figure
 		saving_figure(bild,pbild="Polarize")
@@ -2364,7 +2364,7 @@ else:
 				V = float(fileline.split(' ')[-1].strip())
 				R = V/abs(Inew)
 				
-				bild2 = figure('R(T)',figsize=fig_size)
+				bild2 = plt.figure('R(T)',figsize=fig_size)
 				axR = bild2.add_subplot(111)
 				
 				axR.plot(Tnew[start_index:],R[start_index:],color=tubafgreen(),marker=".",linestyle="", label='Resistance')
@@ -2376,7 +2376,7 @@ else:
 					
 				axR.grid()
 				bild2.tight_layout()
-				show()
+				plt.show()
 				
 				saving_figure(bild2,pbild='Resistance')
 
@@ -2425,7 +2425,7 @@ else:
 				Tfit_down, Terror_down = extract_fit_relerr_params(Tparams_down)
 				#Fit-Plot
 				ax1.plot(tnew[start_index:limit], sinfunc(Tparams_down, tnew[start_index:limit]), color=temp_color,linestyle='-', label='T-Fit')
-				draw()
+				plt.draw()
 				#absolute T_high Error
 				total_Terror_down = abs(Tparams_down['amp'].stderr/Tparams_down['amp'].value)+abs(Tparams_down['phase'].stderr/Tparams_down['phase'].value)+abs(Tparams_down['freq'].stderr/Tparams_down['freq'].value)+abs(Tparams_down['offs'].stderr/Tparams_down['offs'].value)+abs(Tparams_down['slope'].stderr/Tparams_down['slope'].value)
 				#file output
@@ -2440,7 +2440,7 @@ else:
 					Tfit_high, Terror_high = extract_fit_relerr_params(Tparams_high)
 					#plot of second fit
 					ax1.plot(tnew[start_index:-5], sinfunc(Tparams_high, tnew[start_index:-5]), color=volt_color,linestyle='-', label='T-Fit (top)')
-					draw()
+					plt.draw()
 					#absolute T_high Error
 					total_Terror_high = abs(Tparams_high['amp'].stderr/Tparams_high['amp'].value)+abs(Tparams_high['phase'].stderr/Tparams_high['phase'].value)+abs(Tparams_high['freq'].stderr/Tparams_high['freq'].value)+abs(Tparams_high['offs'].stderr/Tparams_high['offs'].value)+abs(Tparams_high['slope'].stderr/Tparams_high['slope'].value)
 					#file output
@@ -2448,7 +2448,7 @@ else:
 
 				leg_T = ax1.legend(loc="upper right",title='Temperatures')
 				#ax2.add_artist(leg_T)
-				draw()
+				plt.draw()
 				
 				log.close()
 			      
@@ -2606,7 +2606,7 @@ else:
 						p_error = append(p_error,perror)
 
 				current_custom_legend(ax2)
-				draw()
+				plt.draw()
 				
 				header_string = "Amp [I]\t\t\tFreq [Hz]\t\t\tPhase [rad]\t\t\tOffset [A]\t\t\tSlope [A/s]\t\t\tAmp_Err [A]\t\t\tFreq_Err [Hz]\t\t\tPhase_Err [rad]\t\t\tOffs_Err [A]\t\t\tSlope_Err [A/s]"
 				savetxt(date+"_"+samplename+"_"+T_profile+"_I-Fit.txt",hstack([Ifit,Ierror]), delimiter="\t", header=header_string)
@@ -2614,10 +2614,10 @@ else:
 				print(line)
 				
 				#Plotting p(T)-----------------------------------------------------------------------------------------------------------
-				bild2=figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
+				bild2=plt.figure(date+"_"+samplename+"_"+T_profile+'_Pyro', figsize=fig_size)
 
 				#p(T)--------------------------------------------------------------
-				ax3=subplot(221)
+				ax3=plt.subplot(221)
 				ax3.set_autoscale_on(True)
 				ax3.set_xlim(p[0,0],p[-1,0])
 				#ax3.set_ylim(min(p[:,2])*1e6-50, max(p[:,2])*1e6+50)
@@ -2628,7 +2628,7 @@ else:
 				ax3.errorbar(p[:,0],(p[:,2]*1e6), yerr=p_error[:]*1e6, color=temp_color,marker=".",linestyle="", elinewidth=None, capsize=3, label='p (SG)')
 				
 				#p/TSC ration---------------------------------------------------------
-				ax5=subplot(222,sharex=ax3)
+				ax5=plt.subplot(222,sharex=ax3)
 				ax5.set_autoscale_on(True)
 				ax5.set_xlim(ax3.get_xbound())
 				ax5.grid(b=None, which='major', axis='both', color='grey')
@@ -2637,7 +2637,7 @@ else:
 				ax5.semilogy(p[:,0], p[:,5], color=volt_color,marker=".",linestyle="", label=r"I$_{p}$/I$_{np}$")
 
 				#Chisqr---------------------------------------------------------------
-				ax6=subplot(224,sharex=ax3)
+				ax6=plt.subplot(224,sharex=ax3)
 				ax6.set_autoscale_on(True)
 				ax6.set_xlim(ax3.get_xbound())
 				ax6.grid(b=None, which='major', axis='both', color='grey')
@@ -2646,7 +2646,7 @@ else:
 				ax6.semilogy(p[:,0], p[:,7], color=np_color,marker=".",linestyle="", label=r"$X^2$")
 
 				#Phasediff---------------------------------------------------------------
-				ax7=subplot(223,sharex=ax3)
+				ax7=plt.subplot(223,sharex=ax3)
 				#ax7.set_autoscale_on(True)
 				ax7.set_xlim(ax3.get_xbound())
 				ax7.set_ylim(0,360)
@@ -2665,7 +2665,7 @@ else:
 				ax8.set_ylabel(r"$I_{\mathrm{Amp}}$ (A)",color=curr_color,size=label_size)
 
 				bild2.tight_layout()
-				show()
+				plt.show()
 				
 				#Saving results and figs------------------------------------------------------------------------------
 				saving_figure(bild1)
@@ -2710,7 +2710,7 @@ else:
 					
 					turning_point_index = argmax(Tnew[:,0])
 					
-					bild2 = figure('R(T)',figsize=fig_size)
+					bild2 = plt.figure('R(T)',figsize=fig_size)
 					axR = bild2.add_subplot(111)
 					
 					axR.plot(Tnew[start_index:turning_point_index],R[start_index:turning_point_index],color=tubafgreen(),marker=".",linestyle="", label='heating')
@@ -2725,7 +2725,7 @@ else:
 					
 					axR.grid()
 					bild2.tight_layout()
-					show()
+					plt.show()
 					
 					saving_figure(bild1)
 					saving_figure(bild2,pbild='Resistance')
@@ -2742,4 +2742,4 @@ else:
 		pass
 print(line)
 prompt("Press enter to exit ...")
-ioff()
+plt.ioff()
