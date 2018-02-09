@@ -78,7 +78,7 @@ interpolation_step = 0.5									#time grid for interpolation (in sec)
 Ifit_counter_limit = 5										#repeat number when I-fit insufficient
 
 # Alternatives for calculations --------------------------------------------------------------------------------------------
-Formation = False											#If TRUE and OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
+Formation = True											#If TRUE and OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
 															#Used for SrTiO3 Formation (under electric field)
 															
 Resistance = False 										 	#If True and OnPerm / Calculation of R(T)
@@ -2394,7 +2394,13 @@ else:
 					maxT_ind = Tnew[:,0]>max(Tnew[:,0])-1
 				else:
 					maxT_ind = Tnew[:,0]>(measurement_info['T_Limit_H']-1)
-					
+				
+				usecoolrate_flag = False
+				if measurement_info['cool_rate'] != 0:
+					choise_rate = prompt('use "cool" or "heat" rate?:')
+					if choise_rate == 'cool':
+						usecoolrate_flag = True
+				
 				if usecoolrate_flag == True:
 					limit = len(Tnew[:,0])-1
 					max_Temp = (tnew[limit]-tnew[0])*-measurement_info['cool_rate']+Tnew[0,0]
