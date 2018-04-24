@@ -35,7 +35,7 @@ from matplotlib.offsetbox import AnchoredText
 
 from time import sleep
 
-version = '0.9.5'
+version = '0.9.6'
 plt.ion()				# interactive on
 plt.close('all')		# close all current/open figures
 
@@ -1382,7 +1382,7 @@ else:
 					number_of_maxima = prompt("How many max?: ")
 					number_of_maxima = int(number_of_maxima)
 					print("select TC(s) from the p(T) plot")
-					TC = ginput(number_of_maxima)
+					TC = plt.ginput(number_of_maxima)
 					
 					#get index from array where temp is 300K
 					T300 = abs(p[:,1]-300).argmin()
@@ -2005,7 +2005,7 @@ else:
 			
 			
 			print("give me fit range ...")
-			inputs = ginput(2)
+			inputs = plt.ginput(2)
 			
 			t_idx_min = abs(Idata[:,0]-inputs[0][0]).argmin()
 			t_idx_max = abs(Idata[:,0]-inputs[1][0]).argmin()
@@ -2080,7 +2080,7 @@ else:
 			
 			#select start time of fit
 			print('select start point of fit:')
-			start_time = ginput(1)[0][0]
+			start_time = plt.ginput(1)[0][0]
 			
 			#start and end index for plotting and so on
 			start_index = (abs(tinterpol - start_time)).argmin()
@@ -2293,7 +2293,7 @@ else:
 		if answer == "y":
 			#console output and graphical input
 			print("Select start of fit from graph.")
-			inputs = ginput()
+			inputs = plt.ginput()
 			print("...fitting")
 
 			#getting starting time
