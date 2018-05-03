@@ -355,7 +355,7 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 	ax1.set_xlabel("Time (s)",size=label_size)
 	ax1.set_ylabel("Temperature (K)",color=temp_color,size=label_size)
 	ax1.set_xlim(tnew[0],tnew[-1])
-	ax1.grid(b=None, which='major', axis='both', color='grey', linewidth=1)
+	ax1.grid(b=None, which='major', axis='both', color='grey', linewidth=1,linestyle=':')
 	ax1.tick_params(axis='y', colors=temp_color)
 	
 	if temp_filter_flag == True:
@@ -896,7 +896,7 @@ else:
 					polarityI = "pos"
 
 				pyro_koeff = (Ifit[0]*-sin(phasediff))/(area*Tfit_down[0]*2*pi*abs(Tfit_down[1]))		
-				perror = pyro_koeff*rel_err(Tfit_down,Terror_down,Ifit,Ierror,area, area_error,phasediff,Xsigma=sigma)
+				perror = abs(pyro_koeff*rel_err(Tfit_down,Terror_down,Ifit,Ierror,area, area_error,phasediff,Xsigma=sigma))
 
 				#Plot Ip and ITSC------------------------------------------------------------------------------------------
 				#NonPyroStrom
@@ -935,7 +935,7 @@ else:
 					I_pyro = (array([tnew[start_index:], sinfunc(pyroparams, tnew[start_index:])])).T		#transpose!
 
 				#legend and information box
-				box_text = r"$A$:"+"\t     "+format(area,'.3e')+r" $\mathrm{m^2}$"+"\n"+ r"$I_{\mathrm{Amp}}$:"+"\t"+format(Ifit[0],'.3e')+r" A"+"\n"+ r"$T_{\mathrm{Amp}}$:"+"\t"+format(Tfit_down[0],'.3f')+r" K"+"\n"+r"$f$:"+"\t     "+format(Tfit_down[1]*1000,'.3f')+" mHz"+"\n"+r"$\phi$:"+"\t\t"+format(degrees(phasediff),'.3f')+"$^{\circ}$"+"\n"+r"$p$:"+"\t     "+format(pyro_koeff*1e6,'.3f')+r" $\mathrm{\mu C/Km^2}$"
+				box_text = r"$A$:"+"\t     "+format(area,'.3e')+r" $\mathrm{m^2}$"+"\n"+ r"$I_{\mathrm{Amp}}$:"+"\t"+format(Ifit[0],'.3e')+r" A"+"\n"+ r"$T_{\mathrm{Amp}}$:"+"    "+format(Tfit_down[0],'.3f')+r" K"+"\n"+r"$f$:"+"\t      "+format(Tfit_down[1]*1000,'.3f')+" mHz"+"\n"+r"$\phi$:"+"\t\t"+format(degrees(phasediff),'.3f')+"$^{\circ}$"+"\n"+r"$p$:"+"\t     ("+format(pyro_koeff*1e6,'.2f')+"+-"+format(perror*1e6,'.2f')+r") $\mathrm{\mu C/Km^2}$"
 				box = plot_textbox(box_text)
 				leg1 = ax1.legend(title="temperatures",loc='upper right')
 				ax2.legend(title="currents",loc='lower right')
