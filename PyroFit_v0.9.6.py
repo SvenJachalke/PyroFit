@@ -59,7 +59,7 @@ area_d13_old = 1.3994e-4									# Aold -- for large Edwards shadow mask (d=13,.
 area_d15_old = 1.761e-4										# Bold -- for single crystals with d=15mm
 #costums area and error (in m2)								# CUSTOM -- 
 custom = 2.49e-5
-custom_error = 1e-10
+custom_error = 7.8539e-11
 
 # User Settings-------------------------------------------------------------------------------------------------------------
 start_index = 400											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
@@ -115,7 +115,7 @@ curr_linestyle = ['o','']									#[makerstyle, linestyle] for current
 volt_linestyle = ['*','']									#[makerstyle, linestyle] for voltage					
 line = "----------------------------------"
 
-export_format = 'png'										#figure output format (png,jpeg,pdf,eps)
+export_format = 'pdf'										#figure output format (png,jpeg,pdf,eps)
 
 # Functions-----------------------------------------------------------------------------------------------------------------
 def prompt(string):
@@ -613,7 +613,7 @@ def phase_correction(phase):
 #------------------------------------------------------------------------------------------------------------------------------
 
 print(line)
-print("PyroFit - UnivseralScript - V%s" % version)
+print("PyroFit - UnivseralScript - v%s" % version)
 print(line)
 
 #Init Plot Colors-----------------------------------------------------------------------------------------------------------------
@@ -800,7 +800,7 @@ else:
 				axp.plot(Tnew,pyro_koeff*1e6,color=temp_color,marker=".",linestyle="", label='p (BR)')
 				axp.set_xlabel('Temperature (K)',size=label_size)
 				axp.set_ylabel(u"p (yC/Km²)",color=temp_color,size=label_size)
-				axp.grid(b=None, which='major', axis='both', color='grey')
+				axp.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				axp.set_xlim(273,max(Tnew[:,0]))
 
 				bild2.tight_layout()
@@ -1316,7 +1316,7 @@ else:
 				ax3.set_xlabel('Temperature (K)',size=label_size)
 				ax3.set_ylabel(u"$p$ (yC/Km²)",color=temp_color,size=label_size)
 
-				ax3.grid(b=None, which='major', axis='both', color='grey')
+				ax3.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax3.errorbar(p[:,1],(p[:,2]*1e6), yerr=p_error[:]*1e6, color=temp_color,marker=".",linestyle="", elinewidth=None, capsize=3, label='$p$ (SG)')
 				if BR_flag == True:
 					ax3.plot(p[:,1],(p[:,3]*1e6), "r.", label='$p$ (BR)')
@@ -1326,7 +1326,7 @@ else:
 				ax5=plt.subplot(222,sharex=ax3)
 				ax5.set_autoscale_on(True)
 				ax5.set_xlim(ax3.get_xbound())
-				ax5.grid(b=None, which='major', axis='both', color='grey')
+				ax5.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax5.set_xlabel('Temperature (K)',size=label_size)
 				ax5.set_ylabel(r"I$_{\mathrm{p}}$/I$_{\mathrm{np}}$",color=volt_color,size=label_size)
 				ax5.semilogy(p[:,1], p[:,5], color=volt_color,marker=".",linestyle="", label=r"I$_{\mathrm{p}}$/I$_{\mathrm{{np}}$")
@@ -1335,7 +1335,7 @@ else:
 				ax6=plt.subplot(224,sharex=ax3)
 				ax6.set_autoscale_on(True)
 				ax6.set_xlim(ax3.get_xbound())
-				ax6.grid(b=None, which='major', axis='both', color='grey')
+				ax6.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax6.set_xlabel('Temperature (K)',size=label_size)
 				ax6.set_ylabel(r"$X^2 / I_{\mathrm{Ampl.}}^2$",color='c',size=label_size)
 				ax6.semilogy(p[:,1], p[:,7], color=np_color,marker=".",linestyle="", label=r"$X^2$")
@@ -1348,7 +1348,7 @@ else:
 				ax7.axhline(180, color='k')
 				ax7.axhline(90, color='k',linestyle='--')
 				ax7.axhline(270, color='k', linestyle='--')
-				ax7.grid(b=None, which='major', axis='both', color='grey')
+				ax7.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax7.set_xlabel('Temperature (K)',size=label_size)
 				ax7.set_ylabel(r'$\phi$ (deg)',color=other,size=label_size)
 				ax7.errorbar(p[:,1],p[:,4],yerr=(abs(Terror_down[:,2])+abs(Ierror[:,2])),color=other,marker=".",linestyle="", label="Phasediff.")
@@ -1414,14 +1414,18 @@ else:
 					
 					
 						#user message
-						print("%d:\tTC: %.2f K / %.2f C\n\tPS(300K): %.3f mC/km2" % (i+1,TC[i][0],(TC[i][0]-273.15),abs(P[T300])*1e3))
+						print("%d:\tTC: %.2f K / %.2f C\n\tPR(300 K): %.3f mC/km2" % (i+1,TC[i][0],(TC[i][0]-273.15),abs(P[T300])*1e3))
 
+						#unit conversion for Plot
+						Pout = array(P) * 100	# yC/cm2
+						#Pout = array(P) * 1000	# mC/m2
+						
 						#Plot
-						axP.semilogy(p[:,1],abs(array(P)*1e3), linestylelist[i], color=p_color, label="Polarization")
+						axP.semilogy(p[:,1],abs(Pout), linestylelist[i], color=p_color, label="rem. Polarization")
 						cur_ylim = axP.get_ylim()
-						axP.set_ylim(1e0,1e3)
+						#axP.set_ylim(1e0,1e3)
 						axP.set_xlim(ax3.get_xbound())
-						axP.set_ylabel(u'Polarization (mC/m²)',color=p_color,size=label_size)
+						axP.set_ylabel(u'$P_{\mathrm{R}}$ (yC/m²)',color=p_color,size=label_size)
 					
 					plt.draw()
 				
@@ -1895,7 +1899,7 @@ else:
 				ax3.set_xlabel('Temperature (K)',size=label_size)
 				ax3.set_ylabel(u"$p$ (yC/Km²)",color=temp_color,size=label_size)
 
-				ax3.grid(b=None, which='major', axis='both', color='grey')
+				ax3.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax3.errorbar(p[:turning_p_index,1],(p[:turning_p_index,2]*1e6), yerr=p_error[:turning_p_index]*1e6, color=temp_color, marker=".",linestyle="", elinewidth=None, capsize=3, label='heat')
 				ax3.errorbar(p[turning_p_index:,1],(p[turning_p_index:,2]*1e6), yerr=p_error[turning_p_index:]*1e6, color=temp_color, marker="x",linestyle="", elinewidth=None, capsize=3, label='cool')
 				ax3.legend(loc=3,fontsize=fontsize_box)
@@ -1909,7 +1913,7 @@ else:
 				ax5=plt.subplot(222,sharex=ax3)
 				ax5.set_autoscale_on(True)
 				ax5.set_xlim(ax3.get_xbound())
-				ax5.grid(b=None, which='major', axis='both', color='grey')
+				ax5.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax5.set_xlabel('Temperature (K)',size=label_size)
 				ax5.set_ylabel(r"I$_{\mathrm{p}}$/I$_{\mathrm{np}}$",color=volt_color,size=label_size)
 				ax5.semilogy(p[:turning_p_index,1], p[:turning_p_index,5], color=volt_color,marker=".",linestyle="", label="heat")
@@ -1920,7 +1924,7 @@ else:
 				ax6=plt.subplot(224,sharex=ax3)
 				ax6.set_autoscale_on(True)
 				ax6.set_xlim(ax3.get_xbound())
-				ax6.grid(b=None, which='major', axis='both', color='grey')
+				ax6.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax6.set_xlabel('Temperature (K)',size=label_size)
 				ax6.set_ylabel(r"$X^2 / I_{\mathrm{Ampl.}}^2$",color='c',size=label_size)
 				ax6.semilogy(p[:turning_p_index,1], p[:turning_p_index,7], color=np_color,marker=".",linestyle="", label="heat")
@@ -1935,7 +1939,7 @@ else:
 				ax7.axhline(180, color='k')
 				ax7.axhline(90, color='k',linestyle='--')
 				ax7.axhline(270, color='k', linestyle='--')
-				ax7.grid(b=None, which='major', axis='both', color='grey')
+				ax7.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax7.set_xlabel('Temperature (K)',size=label_size)
 				ax7.set_ylabel(r"$\phi$ (deg)",color=other,size=label_size)
 				ax7.plot(p[:turning_p_index,1],p[:turning_p_index,4],color=other,marker=".",linestyle="", label="heat")
@@ -2265,7 +2269,7 @@ else:
 		#Plot Voltage
 		ax1.set_xlabel('Time (s)',size=label_size)
 		ax1.set_ylabel('Voltage (V)',color=volt_color,size=label_size)
-		ax1.grid(b=None, which='major', color='grey', linewidth=1)
+		ax1.grid(b=None, which='major', color='grey', linewidth=1,linestyle=':')
 		ax1.plot(HVdata[:,0], HVdata[:,1], color=volt_color,marker=".",linestyle="", label='set')
 		ax1.plot(HVdata[:,0], HVdata[:,2], color=volt_color,marker="x",linestyle="", label='meas.')
 		ax1.set_xlim(HVdata[0,0],HVdata[-1,0])
@@ -2375,7 +2379,7 @@ else:
 				axR.set_xlabel('Temperature (K)',size=label_size)
 				axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
 					
-				axR.grid()
+				axR.grid(linestyle=':')
 				bild2.tight_layout()
 				plt.show()
 				
@@ -2631,14 +2635,14 @@ else:
 				ax3.set_xlabel('Time (s)',size=label_size)
 				ax3.set_ylabel(u"$p$ (yC/Km²)",color=temp_color,size=label_size)
 
-				ax3.grid(b=None, which='major', axis='both', color='grey')
+				ax3.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax3.errorbar(p[:,0],(p[:,2]*1e6), yerr=p_error[:]*1e6, color=temp_color,marker=".",linestyle="", elinewidth=None, capsize=3, label='p (SG)')
 				
 				#p/TSC ration---------------------------------------------------------
 				ax5=plt.subplot(222,sharex=ax3)
 				ax5.set_autoscale_on(True)
 				ax5.set_xlim(ax3.get_xbound())
-				ax5.grid(b=None, which='major', axis='both', color='grey')
+				ax5.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax5.set_xlabel('Time (s)',size=label_size)
 				ax5.set_ylabel(r"I$_{p}$/I$_{np}$",color=volt_color,size=label_size)
 				ax5.semilogy(p[:,0], p[:,5], color=volt_color,marker=".",linestyle="", label=r"I$_{p}$/I$_{np}$")
@@ -2647,7 +2651,7 @@ else:
 				ax6=plt.subplot(224,sharex=ax3)
 				ax6.set_autoscale_on(True)
 				ax6.set_xlim(ax3.get_xbound())
-				ax6.grid(b=None, which='major', axis='both', color='grey')
+				ax6.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax6.set_xlabel('Time (s)',size=label_size)
 				ax6.set_ylabel(r"$X^2$",color=np_color,size=label_size)
 				ax6.semilogy(p[:,0], p[:,7], color=np_color,marker=".",linestyle="", label=r"$X^2$")
@@ -2660,7 +2664,7 @@ else:
 				ax7.axhline(180, color='k')
 				ax7.axhline(90, color='k',linestyle='--')
 				ax7.axhline(270, color='k', linestyle='--')
-				ax7.grid(b=None, which='major', axis='both', color='grey')
+				ax7.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax7.set_xlabel('Time (s)',size=label_size)
 				ax7.set_ylabel(r"$\phi$ (deg)",color=other,size=label_size)
 				ax7.plot(p[:,0],p[:,4],color=other,marker=".",linestyle="", label="Phasediff.")
@@ -2730,7 +2734,7 @@ else:
 					axR.set_xlabel('Temperature (K)',size=label_size)
 					axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
 					
-					axR.grid()
+					axR.grid(linestyle=':')
 					bild2.tight_layout()
 					plt.show()
 					
