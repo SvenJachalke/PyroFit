@@ -84,7 +84,7 @@ Formation = True											#If TRUE and OnPerm / SineWave Method will be evaluat
 Resistance = False 										 	#If True and OnPerm / Calculation of R(T)
 															#Maybe needs some testing
 
-PartWiseTFit = True											#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
+PartWiseTFit = False											#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
 															#as the current (same interval!) and not over the whole range
 															#In order to keep the increasing error low, it is recommended to use more than 1 fit period!
 
@@ -1351,8 +1351,10 @@ else:
 				ax7.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				ax7.set_xlabel('Temperature (K)',size=label_size)
 				ax7.set_ylabel(r'$\phi$ (deg)',color=other,size=label_size)
-				ax7.errorbar(p[:,1],p[:,4],yerr=(abs(Terror_down[:,2])+abs(Ierror[:,2])),color=other,marker=".",linestyle="", label="Phasediff.")
-				
+				if PartWiseTFit == True:
+					ax7.errorbar(p[:,1],p[:,4],yerr=(abs(Terror_down[:,2])+abs(Ierror[:,2])),color=other,marker=".",linestyle="", label="Phasediff.")
+				else:
+					ax7.errorbar(p[:,1],p[:,4],yerr=(abs(Terror_down[2])+abs(Ierror[:,2])),color=other,marker=".",linestyle="", label="Phasediff.")
 				#CurrAmp---------------------------------------------------------------
 				ax8 = ax7.twinx()
 				ax8.set_xlim(ax3.get_xbound())
