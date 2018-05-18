@@ -78,13 +78,15 @@ interpolation_step = 0.5									#time grid for interpolation (in sec)
 Ifit_counter_limit = 5										#repeat number when I-fit insufficient
 
 # Alternatives for calculations --------------------------------------------------------------------------------------------
-Formation = True											#If TRUE and OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
+Formation = False											#If TRUE and OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
 															#Used for SrTiO3 Formation (under electric field)
 															
 Resistance = False 										 	#If True and OnPerm / Calculation of R(T)
 															#Maybe needs some testing
+AbsResistance = False 										#If True absolute values of set voltage and measured current is calculated
+															#(usefull is current changes singn)
 
-PartWiseTFit = False											#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
+PartWiseTFit = True 										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
 															#as the current (same interval!) and not over the whole range
 															#In order to keep the increasing error low, it is recommended to use more than 1 fit period!
 
@@ -115,7 +117,7 @@ curr_linestyle = ['o','']									#[makerstyle, linestyle] for current
 volt_linestyle = ['*','']									#[makerstyle, linestyle] for voltage					
 line = "----------------------------------"
 
-export_format = 'pdf'										#figure output format (png,jpeg,pdf,eps)
+export_format = 'png'										#figure output format (png,jpeg,pdf,eps)
 
 # Functions-----------------------------------------------------------------------------------------------------------------
 def prompt(string):
@@ -2349,7 +2351,7 @@ else:
 	#HighVoltage always on
 	elif measurement_info['hv_mode'] == "On":
 		#---------------------------------------------------------------------------------------------------------------------
-		if T_profile == "Thermostat" or T_profile == "SineWave" or T_profile == "SineWave+LinRamp" or T_profile == "LinearRamp":
+		if T_profile == "LinearRamp" or T_profile == "LinRamp":
 			print("Mode:\t\t%s" % measurement_info['waveform'])
 
 			#Interpolation and plotting of data ----
@@ -2362,6 +2364,8 @@ else:
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 			
 			if Resistance == True:
+				print('...resistance calculation')
+
 				for file in filelist:
 					if file.endswith('HVsetVoltage-HVmeasVoltage.log'):
 						filehandle = open(file)
@@ -2369,25 +2373,42 @@ else:
 						filehandle.close()
 				
 				V = float(fileline.split(' ')[-1].strip())
-				R = V/abs(Inew)
+				if AbsResistance == True:
+					V = abs(V)	
+					R = V/abs(Inew)
+					print('...abs.resistance values selected!')
+				else:
+					V = V
+					R = V/Inew
 				
 				bild2 = plt.figure('R(T)',figsize=fig_size)
 				axR = bild2.add_subplot(111)
 				
-				axR.plot(Tnew[start_index:],R[start_index:],color=tubafgreen(),marker=".",linestyle="", label='Resistance')
+				axR.plot(Tnew[start_index:,0],R[start_index:],color=tubafgreen(),marker=".",linestyle="", label='Resistance')
 				axR.set_xlim(Tnew[start_index,0],Tnew[-1,0])
 				axR.set_yscale('log')
 				
 				axR.set_xlabel('Temperature (K)',size=label_size)
-				axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
-					
+				
+				if AbsResistance == True:
+					axR.set_ylabel('abs. Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+				else:
+					axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+
 				axR.grid(linestyle=':')
 				bild2.tight_layout()
+
+				if print_signature == True:
+						bild2.subplots_adjust(bottom=0.125)
+						signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
+						plt.figtext(0.15,0.02,signature)
+					
 				plt.show()
-				
+				print(line)
+				saving_figure(bild1)
 				saving_figure(bild2,pbild='Resistance')
 
-			if Formation == True:
+			elif Formation == True:
 				print('formation measurement set true!')
 				
 				#area for pyroel. coefficent
@@ -2697,7 +2718,7 @@ else:
 			else:
 				saving_figure(bild1)
 
-		elif T_profile == "TriangleHat+SineWave" or T_profile == "TriangleHat":
+		elif T_profile == "TriangleHat":
 			print("Mode:\t\t"+measurement_info['waveform'])
 			
 			if Resistance == True:
@@ -2712,39 +2733,59 @@ else:
 				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 				
 				if Resistance == True:
+					print('...resistance calculation')
+
 					for file in filelist:
 						if file.endswith('HVsetVoltage-HVmeasVoltage.log'):
 							filehandle = open(file)
 							fileline = filehandle.readline()
 							filehandle.close()
-					
+
 					V = float(fileline.split(' ')[-1].strip())
-					R = V/abs(Inew)
-					
+					if AbsResistance == True:
+						V = abs(V)
+						R = V/abs(Inew)
+						print('...abs.resistance values selected!')
+					else:
+						V = V
+						R = V/Inew
+
 					turning_point_index = argmax(Tnew[:,0])
 					
 					bild2 = plt.figure('R(T)',figsize=fig_size)
 					axR = bild2.add_subplot(111)
 					
-					axR.plot(Tnew[start_index:turning_point_index],R[start_index:turning_point_index],color=tubafgreen(),marker=".",linestyle="", label='heating')
-					axR.plot(Tnew[turning_point_index:],R[turning_point_index:],color=tubafcyan(),marker=".",linestyle="", label='cooling')
+					axR.plot(Tnew[start_index:turning_point_index,0],R[start_index:turning_point_index],color=tubafgreen(),marker=".",linestyle="", label='heating')
+					axR.plot(Tnew[turning_point_index:,0],R[turning_point_index:],color=tubafcyan(),marker=".",linestyle="", label='cooling')
 
 					axR.set_xlim(Tnew[start_index,0],Tnew[turning_point_index,0])
-					axR.set_yscale('log')
-					axR.legend(loc=1)
+					if AbsResistance == True:
+						axR.set_yscale('symlog')
+					else:
+						axR.set_yscale('log')
 				
 					axR.set_xlabel('Temperature (K)',size=label_size)
-					axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+					if AbsResistance == True:
+						axR.set_ylabel('abs. Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+					else:
+						axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
 					
 					axR.grid(linestyle=':')
+					axR.legend(loc=1)
 					bild2.tight_layout()
-					plt.show()
 					
+					if print_signature == True:
+						bild2.subplots_adjust(bottom=0.125)
+						signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
+						plt.figtext(0.15,0.02,signature)
+					
+					plt.show()
+					print(line)
 					saving_figure(bild1)
 					saving_figure(bild2,pbild='Resistance')
 					
 			else:
-				print('Just resistance calculation implemented in these waveforms implemented yet!')
+				print('Do you want to perfom resistance calculation? Set "Resistance" flag True!')
 
 		else:
 			print("Mode not implemented yet ...")
