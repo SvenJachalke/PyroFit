@@ -81,9 +81,9 @@ Ifit_counter_limit = 5										#repeat number when I-fit insufficient
 Formation = False											#If TRUE and OnPerm / SineWave Method will be evaluated as SinLinRamp by p(t) instead of p(T)
 															#Used for SrTiO3 Formation (under electric field)
 															
-Resistance = False 										 	#If True and OnPerm / Calculation of R(T)
+Resistance = True 										 	#If True and OnPerm / Calculation of R(T)
 															#Maybe needs some testing
-AbsResistance = False 										#If True absolute values of set voltage and measured current is calculated
+AbsResistance = True 										#If True absolute values of set voltage and measured current is calculated
 															#(usefull is current changes singn)
 
 PartWiseTFit = True 										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
@@ -1990,6 +1990,24 @@ else:
 		
 		#---------------------------------------------------------------------------------------------------------------------
 		#UpStairs+Downstairs
+		elif measurement_info['waveform'] == "UpStairs":
+			print("Mode:\t\t%s"%measurement_info['waveform'])
+			print("Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tHR=%.1fK/h\n\t\tdT=%.1fK\n\t\tt=%.1fs" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['heat_rate']*3600, measurement_info['amp'], 1/measurement_info['freq']))	
+			
+			#Interpolation and plotting of data ----
+			print(line)
+			print("...plotting")
+			print(line)
+			# pre-fit plot
+			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+
+			savfing
+			plt.show()
+			saving_figure(bild1)
+
+		#---------------------------------------------------------------------------------------------------------------------
+		#UpStairs+Downstairs
 		elif measurement_info['waveform'] == "UpStairs+DownStairs":
 			print("Mode:\t\t%s"%measurement_info['waveform'])
 			print("Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h\n\t\tdT=%.1fK\n\t\tt=%.1fs" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['offs'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600, measurement_info['amp'], 1/measurement_info['freq']))
@@ -2003,6 +2021,7 @@ else:
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
 			plt.show()
+			saving_figure(bild1)
 
 		#---------------------------------------------------------------------------------------------------------------------
 		#SquareWave
@@ -2368,7 +2387,7 @@ else:
 	elif measurement_info['hv_mode'] == "On":
 		#---------------------------------------------------------------------------------------------------------------------
 		#TriangleHat + Resistance
-		if T_profile == "LinearRamp" or T_profile == "LinRamp":
+		if measurement_info['waveform'] == "LinearRamp" or measurement_info['waveform'] == "LinRamp":
 			print("Mode:\t\t%s" % measurement_info['waveform'])
 
 			#Interpolation and plotting of data ----
@@ -2736,81 +2755,81 @@ else:
 				saving_figure(bild1)
 
 		#TriangleHat + Resistance
-		elif T_profile == "TriangleHat":
+		elif measurement_info['waveform'] == "TriangleHat":
 			print("Mode:\t\t"+measurement_info['waveform'])
+
+			#plotting of data ----
+			print(line)
+			print("...plotting")
+			print(line)
+
+			# pre-fit plot
+			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 			
 			if Resistance == True:
+				print('...resistance calculation')
 
-				#Interpolation and plotting of data ----
-				print(line)
-				print("...plotting")
-				print(line)
-	
-				# pre-fit plot
-				tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
-				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+				for file in filelist:
+					if file.endswith('HVsetVoltage-HVmeasVoltage.log'):
+						filehandle = open(file)
+						fileline = filehandle.readline()
+						filehandle.close()
+
+				V = float(fileline.split(' ')[-1].strip())
+				if AbsResistance == True:
+					V = abs(V)
+					R = V/abs(Inew)
+					print('...abs.resistance values selected!')
+				else:
+					V = V
+					R = V/Inew
+
+				turning_point_index = argmax(Tnew[:,0])
 				
-				if Resistance == True:
-					print('...resistance calculation')
-
-					for file in filelist:
-						if file.endswith('HVsetVoltage-HVmeasVoltage.log'):
-							filehandle = open(file)
-							fileline = filehandle.readline()
-							filehandle.close()
-
-					V = float(fileline.split(' ')[-1].strip())
-					if AbsResistance == True:
-						V = abs(V)
-						R = V/abs(Inew)
-						print('...abs.resistance values selected!')
-					else:
-						V = V
-						R = V/Inew
-
-					turning_point_index = argmax(Tnew[:,0])
-					
-					bild2 = plt.figure('R(T)',figsize=fig_size)
-					axR = bild2.add_subplot(111)
-					
-					axR.plot(Tnew[start_index:turning_point_index,0],R[start_index:turning_point_index],color=tubafgreen(),marker=".",linestyle="", label='heating')
-					axR.plot(Tnew[turning_point_index:,0],R[turning_point_index:],color=tubafcyan(),marker=".",linestyle="", label='cooling')
-
-					axR.set_xlim(Tnew[start_index,0],Tnew[turning_point_index,0])
-					if AbsResistance == True:
-						axR.set_yscale('symlog')
-					else:
-						axR.set_yscale('log')
+				bild2 = plt.figure('R(T)',figsize=fig_size)
+				axR = bild2.add_subplot(111)
 				
-					axR.set_xlabel('Temperature (K)',size=label_size)
-					if AbsResistance == True:
-						axR.set_ylabel('abs. Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
-					else:
-						axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
-					
-					axR.grid(linestyle=':')
-					axR.legend(loc=1)
-					bild2.tight_layout()
-					
-					if print_signature == True:
-						bild2.subplots_adjust(bottom=0.125)
-						signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
-						plt.figtext(0.15,0.02,signature)
-					
-					plt.show()
-					print(line)
-					saving_figure(bild1)
-					saving_figure(bild2,pbild='Resistance')
+				axR.plot(Tnew[start_index:turning_point_index,0],R[start_index:turning_point_index],color=tubafgreen(),marker=".",linestyle="", label='heating')
+				axR.plot(Tnew[turning_point_index:,0],R[turning_point_index:],color=tubafcyan(),marker=".",linestyle="", label='cooling')
+
+				axR.set_xlim(Tnew[start_index,0],Tnew[turning_point_index,0])
+				if AbsResistance == True:
+					axR.set_yscale('symlog')
+				else:
+					axR.set_yscale('log')
+			
+				axR.set_xlabel('Temperature (K)',size=label_size)
+				if AbsResistance == True:
+					axR.set_ylabel('abs. Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+				else:
+					axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+				
+				axR.grid(linestyle=':')
+				axR.legend(loc=1)
+				bild2.tight_layout()
+				
+				if print_signature == True:
+					bild2.subplots_adjust(bottom=0.125)
+					signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
+					plt.figtext(0.15,0.02,signature)
+				
+				plt.show()
+				print(line)
+				saving_figure(bild2,pbild='Resistance')
 					
 			else:
 				print('Do you want to perfom resistance calculation? Set "Resistance" flag True!')
 
-		#UpStairs+Downstairs + Resistance?
-		elif measurement_info['waveform'] == "UpStairs+DownStairs":
-			print("Mode:\t\t%s"%measurement_info['waveform'])
-			print("Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h\n\t\tdT=%.1fK\n\t\tt=%.1fs" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['offs'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600, measurement_info['amp'], 1/measurement_info['freq']))
+			plt.show()
+			saving_figure(bild1)
 
-			#Interpolation and plotting of data ----
+		#Upstairs + Resistance
+		elif measurement_info['waveform'] == "UpStairs":
+			print("Mode:\t\t%s"%measurement_info['waveform'])
+			print("Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tHR=%.1fK/h\n\t\tdT=%.1fK\n\t\tt=%.1fs" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['heat_rate']*3600, measurement_info['amp'], 1/measurement_info['freq']))	
+			
+			#plotting of data ----
 			print(line)
 			print("...plotting")
 			print(line)
@@ -2818,7 +2837,129 @@ else:
 			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
+			if Resistance == True:
+				print('...resistance calculation')
+
+				for file in filelist:
+					if file.endswith('HVsetVoltage-HVmeasVoltage.log'):
+						filehandle = open(file)
+						fileline = filehandle.readline()
+						filehandle.close()
+
+				V = float(fileline.split(' ')[-1].strip())
+				if AbsResistance == True:
+					V = abs(V)
+					R = V/abs(Inew)
+					print('...abs.resistance values selected!')
+				else:
+					V = V
+					R = V/Inew
+				
+				bild2 = plt.figure('R(T)',figsize=fig_size)
+				axR = bild2.add_subplot(111)
+				
+				axR.plot(Tnew[start_index:,0],R[start_index:],color=tubafgreen(),marker=".",linestyle="", label='heating')
+
+				axR.set_xlim(Tnew[start_index,0],max(Tnew[:,0]))
+				if AbsResistance == True:
+					axR.set_yscale('symlog')
+				else:
+					axR.set_yscale('log')
+			
+				axR.set_xlabel('Temperature (K)',size=label_size)
+				if AbsResistance == True:
+					axR.set_ylabel('abs. Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+				else:
+					axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+				
+				axR.grid(linestyle=':')
+				axR.legend(loc=1)
+				bild2.tight_layout()
+				
+				if print_signature == True:
+					bild2.subplots_adjust(bottom=0.125)
+					signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
+					plt.figtext(0.15,0.02,signature)
+				
+				plt.show()
+				print(line)
+				saving_figure(bild2,pbild='Resistance')
+
+			else:
+				print('Do you want to perfom resistance calculation? Set "Resistance" flag True!')
+
 			plt.show()
+			saving_figure(bild1)
+
+		#UpStairs+Downstairs + Resistance
+		elif measurement_info['waveform'] == "UpStairs+DownStairs":
+			print("Mode:\t\t%s"%measurement_info['waveform'])
+			print("Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h\n\t\tdT=%.1fK\n\t\tt=%.1fs" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['offs'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600, measurement_info['amp'], 1/measurement_info['freq']))
+
+			#plotting of data ----
+			print(line)
+			print("...plotting")
+			print(line)
+			# pre-fit plot
+			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+
+			if Resistance == True:
+				print('...resistance calculation')
+
+				for file in filelist:
+					if file.endswith('HVsetVoltage-HVmeasVoltage.log'):
+						filehandle = open(file)
+						fileline = filehandle.readline()
+						filehandle.close()
+
+				V = float(fileline.split(' ')[-1].strip())
+				if AbsResistance == True:
+					V = abs(V)
+					R = V/abs(Inew)
+					print('...abs.resistance values selected!')
+				else:
+					V = V
+					R = V/Inew
+
+				turning_point_index = argmax(Tnew[:,0])
+				
+				bild2 = plt.figure('R(T)',figsize=fig_size)
+				axR = bild2.add_subplot(111)
+				
+				axR.plot(Tnew[start_index:turning_point_index,0],R[start_index:turning_point_index],color=tubafgreen(),marker=".",linestyle="", label='heating')
+				axR.plot(Tnew[turning_point_index:,0],R[turning_point_index:],color=tubafcyan(),marker=".",linestyle="", label='cooling')
+
+				axR.set_xlim(Tnew[start_index,0],Tnew[turning_point_index,0])
+				if AbsResistance == True:
+					axR.set_yscale('symlog')
+				else:
+					axR.set_yscale('log')
+			
+				axR.set_xlabel('Temperature (K)',size=label_size)
+				if AbsResistance == True:
+					axR.set_ylabel('abs. Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+				else:
+					axR.set_ylabel('Resistance ($\mathrm{\Omega}$)',size=label_size,color=tubafgreen())
+				
+				axR.grid(linestyle=':')
+				axR.legend(loc=1)
+				bild2.tight_layout()
+				
+				if print_signature == True:
+					bild2.subplots_adjust(bottom=0.125)
+					signature = operator['name']+' | '+operator['mail']+' | ' + operator['tel'] + ' | ' +operator['company'] + ' | ' + operator['date']
+					plt.figtext(0.15,0.02,signature)
+				
+				plt.show()
+				print(line)
+				saving_figure(bild2,pbild='Resistance')
+
+			else:
+				print('Do you want to perfom resistance calculation? Set "Resistance" flag True!')
+
+			plt.show()
+			saving_figure(bild1)
 
 		else:
 			print("Mode not implemented yet ...")
