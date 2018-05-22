@@ -115,7 +115,7 @@ linestylelist = ['x','*','o ', 'x']
 temp_linestyle=['o','']										#[makerstyle, linestyle] for temperature
 curr_linestyle = ['o','']									#[makerstyle, linestyle] for current
 volt_linestyle = ['*','']									#[makerstyle, linestyle] for voltage					
-line = "----------------------------------"
+line = "-----------------------------------"
 
 export_format = 'png'										#figure output format (png,jpeg,pdf,eps)
 
@@ -1989,6 +1989,22 @@ else:
 			print(line)
 		
 		#---------------------------------------------------------------------------------------------------------------------
+		#UpStairs+Downstairs
+		elif measurement_info['waveform'] == "UpStairs+DownStairs":
+			print("Mode:\t\t%s"%measurement_info['waveform'])
+			print("Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h\n\t\tdT=%.1fK\n\t\tt=%.1fs" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['offs'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600, measurement_info['amp'], 1/measurement_info['freq']))
+
+			#Interpolation and plotting of data ----
+			print(line)
+			print("...plotting")
+			print(line)
+			# pre-fit plot
+			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+
+			plt.show()
+
+		#---------------------------------------------------------------------------------------------------------------------
 		#SquareWave
 		elif measurement_info['waveform'] == "SquareWave":
 			print("Mode:\t\tSquareWave")
@@ -2351,6 +2367,7 @@ else:
 	#HighVoltage always on
 	elif measurement_info['hv_mode'] == "On":
 		#---------------------------------------------------------------------------------------------------------------------
+		#TriangleHat + Resistance
 		if T_profile == "LinearRamp" or T_profile == "LinRamp":
 			print("Mode:\t\t%s" % measurement_info['waveform'])
 
@@ -2718,6 +2735,7 @@ else:
 			else:
 				saving_figure(bild1)
 
+		#TriangleHat + Resistance
 		elif T_profile == "TriangleHat":
 			print("Mode:\t\t"+measurement_info['waveform'])
 			
@@ -2787,8 +2805,24 @@ else:
 			else:
 				print('Do you want to perfom resistance calculation? Set "Resistance" flag True!')
 
+		#UpStairs+Downstairs + Resistance?
+		elif measurement_info['waveform'] == "UpStairs+DownStairs":
+			print("Mode:\t\t%s"%measurement_info['waveform'])
+			print("Stimulation:\tO1=%.1fK\n\t\tTm=%.1fK\n\t\tO2=%.1fK\n\t\tHR=%.1fK/h\n\t\tCR=%.1fK/h\n\t\tdT=%.1fK\n\t\tt=%.1fs" % (measurement_info['offs'], measurement_info['T_Limit_H'], measurement_info['offs'], measurement_info['heat_rate']*3600, measurement_info['cool_rate']*3600, measurement_info['amp'], 1/measurement_info['freq']))
+
+			#Interpolation and plotting of data ----
+			print(line)
+			print("...plotting")
+			print(line)
+			# pre-fit plot
+			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+
+			plt.show()
+
 		else:
 			print("Mode not implemented yet ...")
+
 
 	#-----------------------------------------------------------------------------------------------------------------------------
 	#for every other
