@@ -1624,7 +1624,7 @@ else:
 					
 					
 					#Temp fit/plot for cooling-----------------------------------------------------------------------------
-					Tresult_down_cool= fit(tnew, Tnew[:,0],turning_point_index,end_point_index,1,measurement_info, True, heating=False)
+					Tresult_down_cool= fit(tnew, Tnew[:,0],turning_point_index+start_index,end_point_index,1,measurement_info, True, heating=False)
 					#correction of phase and amplitudes
 					Tparams_down_cool = amp_phase_correction(Tresult_down_cool.params)
 					#extract params dict to lists
@@ -1637,7 +1637,7 @@ else:
 					#file output
 					fileprint_fit(log,Tparams_down_cool,"Temperature (Down) - Cooling")  
 					if temp_filter_flag == False:
-						Tresult_high_cool= fit(tnew, Tnew[:,1], turning_point_index,end_point_index,1, measurement_info, True, heating=False)
+						Tresult_high_cool= fit(tnew, Tnew[:,1], turning_point_index+start_index,end_point_index,1, measurement_info, True, heating=False)
 						#correction of phase and amplitudes
 						Tparams_high_cool = amp_phase_correction(Tresult_high_cool.params)
 						#extract params dict to lists
