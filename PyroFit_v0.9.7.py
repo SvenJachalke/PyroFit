@@ -1374,8 +1374,8 @@ else:
 				
 				plt.show()
 
-				#Calculating p ---------------------------------------------------------------------------------------
-				print("spontaneous Polarization ...")
+				#Calculating PR ---------------------------------------------------------------------------------------
+				print("remanent Polarization ...")
 				PS_plot = prompt("Calculate? (y/n):")
 				if PS_plot == "y":
 					PS_flag = True
@@ -1400,12 +1400,9 @@ else:
 						
 						#calc PS with partial trapezoidal integration
 						for f in range(TC_index):
-							PS_interval = trapz(y=p[f:TC_index,2], x=p[f:TC_index,1])
-							if f==0:	
-								P = [PS_interval]
-							else:
-								P.append(PS_interval)
-						
+							# reverse pyroKoeff
+							P = list(cumtrapz(p[:TC_index,2][::-1],p[:TC_index,1],initial=0))
+							P = P[::-1]
 						#fill rest of array legth with zeros
 						for f in range(TC_index,len(p)):
 							P.append(0.0)
@@ -1425,7 +1422,7 @@ else:
 						#Pout = array(P) * 1000	# mC/m2
 						
 						#Plot
-						axP.semilogy(p[:,1],abs(Pout), linestylelist[i], color=p_color, label="rem. Polarization")
+						axP.plot(p[:,1],abs(Pout), linestylelist[i], color=p_color, label="rem. Polarization")
 						cur_ylim = axP.get_ylim()
 						#axP.set_ylim(1e0,1e3)
 						axP.set_xlim(ax3.get_xbound())
