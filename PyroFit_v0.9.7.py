@@ -2886,6 +2886,7 @@ else:
 				print('Do you want to perfom resistance calculation? Set "Resistance" flag True!')
 
 			plt.show()
+			prompt('Ok?')
 			saving_figure(bild1)
 
 		#UpStairs+Downstairs + Resistance
@@ -2950,6 +2951,7 @@ else:
 				
 				plt.show()
 				print(line)
+				prompt('Ok?')
 				saving_figure(bild2,pbild='Resistance')
 
 			else:
