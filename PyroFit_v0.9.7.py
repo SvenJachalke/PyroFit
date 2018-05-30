@@ -787,10 +787,6 @@ else:
 				head = date+"_"+samplename+"_"+T_profile+'p(T)'
 				bild2 = plt.figure(head, figsize=fig_size)
 				axp = bild2.add_subplot(111)
-				
-				#initialize list and dicts for fit
-				start = start_index
-				#end = len(Tnew[:,0])-1
 
 				#check when ramp run into T_Limit_H
 				if max(Tnew[:,0]) < measurement_info['T_Limit_H']:
@@ -798,19 +794,53 @@ else:
 				else:
 					maxT_ind = Tnew[:,0]>(measurement_info['T_Limit_H']-1)
 				number_of_lim = maxT_ind.tolist().count(True)
-				limit = len(Tnew[:,0])-number_of_lim-1
+				limit = len(Tnew[:,0])-number_of_lim
 				
+				# init Params dict
 				Params = Parameters()
 				Params.add('offs', value=measurement_info['offs'])
 				Params.add('slope', value=measurement_info['heat_rate'])
-				Tresults = minimize(linear, Params, args=(tnew[start:limit], Tnew[start:limit,0]), method="leastsq")
-				ax1.plot(tnew[start:limit],linear(Tresults.params,tnew[start:limit]),color=temp_color,linestyle='-',label="T-Fit (down)")
-				plt.draw()
+
+				if PartWiseTFit == False:	
+					Tresults = minimize(linear, Params, args=(tnew[start_index:limit], Tnew[start_index:limit,0]), method="leastsq")
+					ax1.plot(tnew[start_index:limit],linear(Tresults.params,tnew[start_index:limit]),color=temp_color,linestyle='-',label="T-Fit (down)")
+					plt.draw()
+					
+					pyro_koeff = abs(Inew[start_index:limit]) / (area * Tresults.params['slope'].value)
+					pyro_koeff_err = pyro_koeff * (0.02 + area_error/area + Tresults.params['slope'].stderr/Tresults.params['slope'].value)
+					p = vstack((tnew[start_index:limit],Tnew[start_index:limit,0],pyro_koeff, pyro_koeff_err)).T
 				
-				pyro_koeff = abs(Inew[start:limit]) / (area * Tresults.params['slope'].value)
-				pyro_koeff_err = pyro_koeff * (0.02 + area_error/area + Tresults.params['slope'].stderr/Tresults.params['slope'].value)
-				p = vstack((tnew[start:limit],Tnew[start:limit,0],pyro_koeff, pyro_koeff_err)).T	
-				
+				else:
+					pyro_koeff = array([])
+					pyro_koeff_err = array([])
+					time = array([])
+					Temp = array([])
+
+					# T Fit in 10 parts (for wide T range!)
+					cut = 10
+					satzlaenge = int((limit-start_index)/cut)
+
+					for i in arange(1,cut):
+						start = start_index+int((i*satzlaenge)-satzlaenge)
+						ende = start_index+int(i*satzlaenge)
+
+						t = tnew[start:ende]
+						T = Tnew[start:ende,0]
+						
+						Tresults = minimize(linear, Params, args=(t,T), method="leastsq")
+						ax1.plot(tnew[start:ende],linear(Tresults.params,tnew[start:ende]),color=temp_color,linestyle='-',label="T-Fit (down)")
+						plt.draw()
+
+						pyro_koeff_temp = abs(Inew[start:ende]) / (area * Tresults.params['slope'].value)
+						pyro_koeff_err_temp = pyro_koeff_temp * (0.02 + area_error/area + Tresults.params['slope'].stderr/Tresults.params['slope'].value)
+
+						pyro_koeff = append(pyro_koeff,pyro_koeff_temp)
+						pyro_koeff_err = append(pyro_koeff_err, pyro_koeff_err_temp)
+						time = append(time, t)
+						Temp = append(Temp, T)
+
+					p = vstack((time, Temp, pyro_koeff, pyro_koeff_err)).T
+
 				axp.plot(p[:,1],p[:,2]*1e6,color=temp_color,marker=".",linestyle="-", label='p (BR)')
 				axp.set_xlabel('Temperature (K)',size=label_size)
 				axp.set_ylabel(u"p (yC/Km²)",color=temp_color,size=label_size)
