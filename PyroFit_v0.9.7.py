@@ -30,6 +30,7 @@ from tubafcdpy import *
 import glob, sys, os, datetime
 from numpy import *
 from scipy.interpolate import interp1d
+from scipy.integrate import cumtrapz
 from lmfit import minimize, Parameters, report_errors, fit_report
 from matplotlib.offsetbox import AnchoredText
 
@@ -58,7 +59,7 @@ area_a5 = 1.4668e-5											# C -- for 5x5mm samples, e.g. SrTiO3, ...
 area_d13_old = 1.3994e-4									# Aold -- for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
 area_d15_old = 1.761e-4										# Bold -- for single crystals with d=15mm
 #costums area and error (in m2)								# CUSTOM -- 
-custom = 2.49e-5
+custom = 9.4171e-5
 custom_error = 7.8539e-11
 
 # User Settings-------------------------------------------------------------------------------------------------------------
@@ -483,8 +484,8 @@ def linear(params, x, data=None):
 	input: Parameter dict (lmfit)
 	output: model
 	"""
-	a = params['a'].value
-	b = params['b'].value
+	a = params['slope'].value
+	b = params['offs'].value
 	model = a*x + b
 	if data is None:
 		return model
@@ -789,26 +790,114 @@ else:
 				
 				#initialize list and dicts for fit
 				start = start_index
-				end = len(Tnew[:,0])-1
+				#end = len(Tnew[:,0])-1
+
+				#check when ramp run into T_Limit_H
+				if max(Tnew[:,0]) < measurement_info['T_Limit_H']:
+					maxT_ind = Tnew[:,0]>max(Tnew[:,0])-1
+				else:
+					maxT_ind = Tnew[:,0]>(measurement_info['T_Limit_H']-1)
+				number_of_lim = maxT_ind.tolist().count(True)
+				limit = len(Tnew[:,0])-number_of_lim-1
 				
 				Params = Parameters()
-				Params.add('offs', value=measurement_info['offs'], min=273.0)
+				Params.add('offs', value=measurement_info['offs'])
 				Params.add('slope', value=measurement_info['heat_rate'])
-				Tresults = minimize(linear, Params, args=(tnew[start:end], Tnew[start:end,0]), method="leastsq")
-				ax1.plot(tnew[start:],linear(Params,tnew[start:]),color=temp_color,linestyle='-',label="T-Fit (down)")
+				Tresults = minimize(linear, Params, args=(tnew[start:limit], Tnew[start:limit,0]), method="leastsq")
+				ax1.plot(tnew[start:limit],linear(Tresults.params,tnew[start:limit]),color=temp_color,linestyle='-',label="T-Fit (down)")
+				plt.draw()
 				
-				pyro_koeff = abs(Inew) / (area * Params['slope'].value)	
+				pyro_koeff = abs(Inew[start:limit]) / (area * Tresults.params['slope'].value)
+				pyro_koeff_err = pyro_koeff * (0.02 + area_error/area + Tresults.params['slope'].stderr/Tresults.params['slope'].value)
+				p = vstack((tnew[start:limit],Tnew[start:limit,0],pyro_koeff, pyro_koeff_err)).T	
 				
-				axp.plot(Tnew,pyro_koeff*1e6,color=temp_color,marker=".",linestyle="", label='p (BR)')
+				axp.plot(p[:,1],p[:,2]*1e6,color=temp_color,marker=".",linestyle="-", label='p (BR)')
 				axp.set_xlabel('Temperature (K)',size=label_size)
 				axp.set_ylabel(u"p (yC/Km²)",color=temp_color,size=label_size)
 				axp.grid(b=None, which='major', axis='both', color='grey',linestyle=':')
 				axp.set_xlim(273,max(Tnew[:,0]))
 
+				#Calculating PR ---------------------------------------------------------------------------------------
+				print("remanent Polarization ...")
+				PS_plot = prompt("Calculate? (y/n):")
+				if PS_plot == "y":
+					PS_flag = True
+					
+					#generate new ax
+					axP = axp.twinx()
+					
+					number_of_maxima = prompt("How many max?: ")
+					number_of_maxima = int(number_of_maxima)
+					print("select TC(s) from the p(T) plot")
+					TC = plt.ginput(number_of_maxima)
+					
+					#get index from array where temp is 300K
+					T300 = abs(p[:]-300).argmin()
+					
+					P = []
+					TC_index_list = []
+					#loop for each selected temperature
+					for i in range(number_of_maxima):
+						TC_index = abs(p[:,1]-TC[i][0]).argmin()
+						TC_index_list.append(TC_index)
+						
+						#calc PS with partial trapezoidal integration
+						for f in range(TC_index):
+							# reverse pyroKoeff
+							P = list(cumtrapz(p[:TC_index,2][::-1],p[:TC_index,1],initial=0))
+							P = P[::-1]
+						#fill rest of array legth with zeros
+						for f in range(TC_index,len(p)):
+							P.append(0.0)
+					
+						#make array type 
+						Polarization = array(P)
+
+						#append to p array
+						p = column_stack((p,Polarization))		#letzte Spalte ist Polarizationsverlauf
+					
+						#unit conversion for Plot
+						Pout = array(P) * 100	# yC/cm2
+						#Pout = array(P) * 1000	# mC/m2
+					
+						#user message
+						#print("%d:\tTC: %.2f K / %.2f C\n\tPR(300 K): %.3f yC/km2" % (i+1,TC[i][0],(TC[i][0]-273.15),abs(Pout[T300])*1e3))
+						
+						#Plot
+						axP.plot(p[:,1],abs(Pout), linestylelist[i], color=p_color, label="rem. Polarization")
+						cur_ylim = axP.get_ylim()
+						#axP.set_ylim(1e0,1e3)
+						axP.set_xlim(axp.get_xbound())
+						axP.set_ylabel(u'$P_{\mathrm{R}}$ (yC/m²)',color=p_color,size=label_size)
+					
+					plt.draw()
+
 				bild2.tight_layout()
+				saving_figure(bild2,pbild=True)
+
+				#writing log files
+				print(line)
+				print("...writing log files")
+
+				# temperature
+				log = open(date+"_"+samplename+"_"+T_profile+"_T-Fit.txt", 'w+')
+				log.write("#Results\n#----------\n")
+				fileprint_fit(log,Tresults.params,"Temperature")
+				log.close()
+
+				# p and PS
+				header_string = "time [s]\t\t\tTemp [K]\t\t\tp_BR [C/Km2]\t\t\tp_err [C/Km2]"
 				
+				if PS_flag == True:
+					
+					for k in range(number_of_maxima):
+						pol_string = "\t\tPS [C/m2] - TC %.2fK" % p[TC_index_list[k],1]
+						header_string = header_string + pol_string 
+				
+				savetxt(date+"_"+samplename+"_"+T_profile+"_"+"PyroData.txt", p, delimiter="\t", header=header_string)
+
 			saving_figure(bild1)
-			saving_figure(bild2,pbild=True)
+			
 			
 		#---------------------------------------------------------------------------------------------------------------------
 		#SineWave Method
@@ -1413,14 +1502,13 @@ else:
 						#append to p array
 						p = column_stack((p,Polarization))		#letzte Spalte ist Polarizationsverlauf
 					
-					
-						#user message
-						print("%d:\tTC: %.2f K / %.2f C\n\tPR(300 K): %.3f mC/km2" % (i+1,TC[i][0],(TC[i][0]-273.15),abs(P[T300])*1e3))
-
 						#unit conversion for Plot
 						Pout = array(P) * 100	# yC/cm2
 						#Pout = array(P) * 1000	# mC/m2
-						
+
+						#user message
+						#print("%d:\tTC: %.2f K / %.2f C\n\tPR(300 K): %.3f mC/km2" % (i+1,TC[i][0],(TC[i][0]-273.15),abs(Pout[T300])*1e3))
+
 						#Plot
 						axP.plot(p[:,1],abs(Pout), linestylelist[i], color=p_color, label="rem. Polarization")
 						cur_ylim = axP.get_ylim()
