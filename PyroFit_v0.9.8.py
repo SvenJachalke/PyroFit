@@ -776,7 +776,7 @@ else:
 			
 			# Perform Byer-Roundy Fit and calc p
 			#---------------------------------------------------------------------------------------------------------------
-			answer = input("fit? [y/n]")
+			answer = prompt("fit? [y/n]")
 			if answer == "y":
 				
 				area, area_error = get_area()
