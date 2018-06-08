@@ -36,7 +36,7 @@ from matplotlib.offsetbox import AnchoredText
 
 from time import sleep
 
-version = '0.9.6'
+version = '0.9.8'
 plt.ion()				# interactive on
 plt.close('all')		# close all current/open figures
 
@@ -1261,8 +1261,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 					
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('slope', value=1e-10)
+				Iparams_lin.add('offs', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -1283,8 +1283,8 @@ else:
 					# fit performed at t=0
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 
-					Iparams_lin['a'].value = Iresult_sin.params['slope'].value
-					Iparams_lin['b'].value = Iresult_sin.params['offs'].value
+					Iparams_lin['slope'].value = Iresult_sin.params['slope'].value
+					Iparams_lin['offs'].value = Iresult_sin.params['offs'].value
 					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 					
 					Iparams = Iresult_sin.params
@@ -1792,8 +1792,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-12)
-				Iparams_lin.add('b', value=1e-10)
+				Iparams_lin.add('slope', value=1e-12)
+				Iparams_lin.add('offs', value=1e-10)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
@@ -1810,8 +1810,8 @@ else:
 					#fit of sin and lin func (fit at t=0)
 					Iresult_sin = minimize(sinfunc, Iparams, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 
-					Iparams_lin['a'].value = Iresult_sin.params['slope'].value
-					Iparams_lin['b'].value = Iresult_sin.params['offs'].value
+					Iparams_lin['slope'].value = Iresult_sin.params['slope'].value
+					Iparams_lin['offs'].value = Iresult_sin.params['offs'].value
 					Iresult_lin = minimize(linear, Iparams_lin, args=(tnew[start:ende]-tnew[start], Inew[start:ende]), method="leastsq")
 					
 					Iparams = Iresult_sin.params
@@ -2656,8 +2656,8 @@ else:
 				Iparams.add('slope', value=1e-10)
 				
 				Iparams_lin = Parameters()
-				Iparams_lin.add('a', value=1e-10)
-				Iparams_lin.add('b', value=0.0)
+				Iparams_lin.add('slope', value=1e-10)
+				Iparams_lin.add('offs', value=0.0)
 
 				#perform partial fits
 				for i in arange(1,I_perioden):
