@@ -21,7 +21,7 @@
  
 # chose plotting backend
 import matplotlib 
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 
 # Import modules------------------------------------------------------------------------------------------------------------
 import matplotlib.pyplot as plt
@@ -59,8 +59,8 @@ area_a5 = 1.4668e-5											# C -- for 5x5mm samples, e.g. SrTiO3, ...
 area_d13_old = 1.3994e-4									# Aold -- for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
 area_d15_old = 1.761e-4										# Bold -- for single crystals with d=15mm
 #costums area and error (in m2)								# CUSTOM -- 
-custom = 9.4171e-5
-custom_error = 7.8539e-11
+custom = 1.526708e-7
+custom_error = 1.260648e-9
 
 # User Settings-------------------------------------------------------------------------------------------------------------
 start_index = 400											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
@@ -90,6 +90,8 @@ AbsResistance = True 										#If True absolute values of set voltage and measu
 PartWiseTFit = True 										#If TRUE the temperature of a SineWave + LinRamp/TrangleHat will be fitted part wise
 															#as the current (same interval!) and not over the whole range
 															#In order to keep the increasing error low, it is recommended to use more than 1 fit period!
+
+BaselineCorrection = True 									#If TRUE addtional baseline dataset is substracted from current measurement (needs TEMP and CURR log!)
 
 # Plot Settings-------------------------------------------------------------------------------------------------------------
 # Check Matplotlib Version--------------------------------------------------------------------------------------------------
@@ -170,6 +172,8 @@ def extract_datatype(filename):
 		return "GBIP-Errors"
 	else:
 		return None
+	
+	
 def extract_measurementmode(filename):
 	"""
 	Opens temperature file and extract the Waveform and HV-Status
@@ -292,8 +296,9 @@ def interpolate_data(temp_array, curr_array, steps, temp_filter_flag):
 	output: interpolated arrays
 	"""
 	boundries = set_interpolation_range(curr_array[:,0],temp_array[:,0])	#find interpolation range
-	tnew = arange(boundries[0], boundries[1], steps)								#arange new time axis in 0.5s steps
-
+	#new = arange(boundries[0], boundries[1], steps)								#arange new time axis in 0.5s steps
+	tnew = arange(3, boundries[1], steps)
+	
 	#Temperature
 	Tinterpol_down = interp1d(temp_array[:,0],temp_array[:,1])				#interpolation of lower temperature
 	Tnew_down = Tinterpol_down(tnew)
@@ -362,9 +367,9 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 	ax1.tick_params(axis='y', colors=temp_color)
 	
 	if temp_filter_flag == True:
-		ax1.plot(tnew[start_index::set_skip_points()], Tnew[start_index::set_skip_points(),0], color=temp_color,marker=temp_linestyle[0],linestyle=temp_linestyle[1], label="data")
+		Tline = ax1.plot(tnew[start_index::set_skip_points()], Tnew[start_index::set_skip_points(),0], color=temp_color,marker=temp_linestyle[0],linestyle=temp_linestyle[1], label="data")
 	else:
-		ax1.plot(tnew[start_index:-5:skip_points], Tnew[start_index::skip_points,1],color=temp_color,marker=temp_linestyle[0],linestyle=temp_linestyle[1], label="data (top)")
+		Tline = ax1.plot(tnew[start_index:-5:skip_points], Tnew[start_index::skip_points,1],color=temp_color,marker=temp_linestyle[0],linestyle=temp_linestyle[1], label="data (top)")
 	
 	ax1.autoscale(enable=True, axis='y', tight=None)
 	legT = ax1.legend(title="Temperatures", loc='upper right')
@@ -373,7 +378,7 @@ def plot_graph(tnew, Tnew, Inew, T_profile):
 
 	#Plot Current
 	ax2.set_ylabel("Current (A)",color=curr_color,size=label_size)
-	ax2.plot(tnew[start_index::set_skip_points()], Inew[start_index::set_skip_points()], marker=curr_linestyle[0], linestyle=curr_linestyle[1] ,color=curr_color, label="data")
+	Iline = ax2.plot(tnew[start_index::set_skip_points()], Inew[start_index::set_skip_points()], marker=curr_linestyle[0], linestyle=curr_linestyle[1] ,color=curr_color, label="data")
 	ax2.legend(title="Currents", loc='lower right')
 	ax2.set_xlim(tnew[start_index])
 	ax2.locator_params(nbins=10,axis = 'y')
@@ -1112,15 +1117,46 @@ else:
 			print("...plotting")
 			print(line)
 			# pre-fit plot
+
 			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
 			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
-			
+
+			if BaselineCorrection == True:
+				print('Baseline correction enabled ...')
+				for file in filelist:
+					if "Baseline" in file and "TEMP" in file:
+						print('...TEMP baseline found')
+						BLT = loadtxt(file,skiprows=10)
+					if "Baseline" in file and "ELT" in file:
+						print('...ELT baseline found')
+						BLI = loadtxt(file)
+
+				tB, TB, IB = interpolate_data(BLT,BLI,interpolation_step, temp_filter_flag)
+
+				ax1.plot(tB,TB[:,0],color='0.5',marker='.',linestyle='')
+				ax2.plot(tB,IB,color='0.5',marker='.',linestyle='')
+
+			print(line)
 			answer = prompt("fit [y/n]?")
 			if answer == "y":
 
 				#area for pyroel. coefficent
 				area, area_error = get_area()
 				print("Area: %e m2" % area)
+
+				if BaselineCorrection == True:
+					#timeshift = prompt("timedelay [s]?")
+					timeshift = 0.21
+					tnew = tB+timeshift
+					Inew = Inew-IB
+
+					# erase baseline and current line for new baseline corrected current
+					ax1.lines.remove(ax1.lines[1])
+					ax2.lines.remove(ax2.lines[0])
+					ax2.lines.remove(ax2.lines[0])
+
+					Iline = ax2.plot(tnew,Inew, color=tubafgreen(),marker='')
+
 				print("\n"+line)
 				
 				usecoolrate_flag = False
