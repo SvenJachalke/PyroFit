@@ -59,8 +59,8 @@ area_a5 = 1.4668e-5											# C -- for 5x5mm samples, e.g. SrTiO3, ...
 area_d13_old = 1.3994e-4									# Aold -- for large Edwards shadow mask (d=13,...mm), e.g. for PVDF, ...
 area_d15_old = 1.761e-4										# Bold -- for single crystals with d=15mm
 #costums area and error (in m2)								# CUSTOM -- 
-custom = 1.526708e-7
-custom_error = 1.260648e-9
+custom = 1.51227e-7
+custom_error = 5.203042e-9
 
 # User Settings-------------------------------------------------------------------------------------------------------------
 start_index = 400											#start index for fit/plot (100 = 50s, because 2 indices = 1s)
@@ -91,7 +91,7 @@ PartWiseTFit = True 										#If TRUE the temperature of a SineWave + LinRamp/T
 															#as the current (same interval!) and not over the whole range
 															#In order to keep the increasing error low, it is recommended to use more than 1 fit period!
 
-BaselineCorrection = True 									#If TRUE addtional baseline dataset is substracted from current measurement (needs TEMP and CURR log!)
+BaselineCorrection = False 									#If TRUE addtional baseline dataset is substracted from current measurement (needs TEMP and CURR log!)
 
 # Plot Settings-------------------------------------------------------------------------------------------------------------
 # Check Matplotlib Version--------------------------------------------------------------------------------------------------
@@ -286,7 +286,7 @@ def set_interpolation_range(a,b):
 	else:
 		boundries[1] = max(a)
 	return boundries
-def interpolate_data(temp_array, curr_array, steps, temp_filter_flag):
+def interpolate_data(temp_array, curr_array, steps, temp_filter_flag,boundries=None):
 	"""
 	interpolates current and temperature data for plotting and fitting
 	input: temperature array [ndarray]
@@ -295,9 +295,12 @@ def interpolate_data(temp_array, curr_array, steps, temp_filter_flag):
 			temp_filter_flag [bool]
 	output: interpolated arrays
 	"""
-	boundries = set_interpolation_range(curr_array[:,0],temp_array[:,0])	#find interpolation range
+	if BaselineCorrection == True:
+		boundries = boundries
+	else:
+		boundries = set_interpolation_range(curr_array[:,0],temp_array[:,0])	#find interpolation range
 	#new = arange(boundries[0], boundries[1], steps)								#arange new time axis in 0.5s steps
-	tnew = arange(3, boundries[1], steps)
+	tnew = arange(boundries[0],boundries[1], steps)
 	
 	#Temperature
 	Tinterpol_down = interp1d(temp_array[:,0],temp_array[:,1])				#interpolation of lower temperature
@@ -1118,11 +1121,13 @@ else:
 			print(line)
 			# pre-fit plot
 
-			tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
-			bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
-
 			if BaselineCorrection == True:
 				print('Baseline correction enabled ...')
+				
+				boundries = [min(Tdata[:,0])+3,max(Tdata[:,0])-50]
+				tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag,boundries=boundries)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
+				
 				for file in filelist:
 					if "Baseline" in file and "TEMP" in file:
 						print('...TEMP baseline found:')
@@ -1133,10 +1138,14 @@ else:
 						print(file)
 						BLI = loadtxt(file)
 
-				tB, TB, IB = interpolate_data(BLT,BLI,interpolation_step, temp_filter_flag)
+				tB, TB, IB = interpolate_data(BLT,BLI,interpolation_step, temp_filter_flag,boundries=boundries)
 
 				ax1.plot(tB,TB[:,0],color='0.5',marker='.',linestyle='')
 				ax2.plot(tB,IB,color='0.5',marker='.',linestyle='')
+			
+			else:
+				tnew, Tnew, Inew = interpolate_data(Tdata, Idata, interpolation_step, temp_filter_flag)
+				bild1, ax1, ax2 = plot_graph(tnew, Tnew, Inew, T_profile)
 
 			print(line)
 			answer = prompt("fit [y/n]?")
