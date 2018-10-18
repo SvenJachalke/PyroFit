@@ -36,7 +36,7 @@ from matplotlib.offsetbox import AnchoredText
 
 from time import sleep
 
-version = '1.0.0'
+version = '0.9.9'
 plt.ion()				# interactive on
 plt.close('all')		# close all current/open figures
 
